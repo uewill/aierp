@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'arco_design/arco_design.dart';
+import 'features/basic/product/pages/product_create_page.dart';
 
 void main() {
   runApp(const AIERPApp());
@@ -13,10 +15,7 @@ class AIERPApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'AI进销存',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-      ),
+      theme: ArcoTheme.lightTheme,
       home: const LoginPage(),
       debugShowCheckedModeBanner: false,
     );
@@ -153,66 +152,104 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.inventory, size: 80, color: Colors.blue),
-            const SizedBox(height: 16),
-            const Text('AI进销存', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-            const Text('智能录入 · 快速开单', style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 48),
-            TextField(
-              controller: _phoneController,
-              decoration: const InputDecoration(
-                labelText: '手机号',
-                prefixIcon: Icon(Icons.phone),
-                border: OutlineInputBorder(),
+      backgroundColor: ArcoColors.background,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(ArcoSpacing.l),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(height: 60),
+              
+              // Logo
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: ArcoColors.primaryLight,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.inventory,
+                  size: 48,
+                  color: ArcoColors.primary,
+                ),
               ),
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _codeController,
-                    decoration: const InputDecoration(
-                      labelText: '验证码',
-                      prefixIcon: Icon(Icons.lock),
-                      border: OutlineInputBorder(),
+              SizedBox(height: ArcoSpacing.m),
+              
+              // Title
+              Text(
+                'AI进销存',
+                style: ArcoTypography.display2,
+              ),
+              SizedBox(height: ArcoSpacing.xs),
+              Text(
+                '智能录入 · 快速开单',
+                style: ArcoTypography.body3,
+              ),
+              SizedBox(height: ArcoSpacing.xxl),
+              
+              // Phone Input
+              TextField(
+                controller: _phoneController,
+                decoration: InputDecoration(
+                  labelText: '手机号',
+                  prefixIcon: Icon(Icons.phone, color: ArcoColors.textTertiary),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              SizedBox(height: ArcoSpacing.m),
+              
+              // Code Input with Button
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _codeController,
+                      decoration: InputDecoration(
+                        labelText: '验证码',
+                        prefixIcon: Icon(Icons.lock, color: ArcoColors.textTertiary),
+                      ),
+                      keyboardType: TextInputType.number,
                     ),
-                    keyboardType: TextInputType.number,
                   ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 100,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _countdown > 0 || _sendingCode ? null : _sendCode,
-                    child: _sendingCode 
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                      : Text(_countdown > 0 ? '${_countdown}s' : '获取'),
+                  SizedBox(width: ArcoSpacing.s),
+                  SizedBox(
+                    width: 100,
+                    height: 48,
+                    child: ArcoButton(
+                      label: _countdown > 0 ? '${_countdown}s' : '获取',
+                      onPressed: _countdown > 0 || _sendingCode ? null : _sendCode,
+                      type: ArcoButtonType.secondary,
+                      size: ArcoButtonSize.large,
+                      loading: _sendingCode,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text('开发模式验证码: 1234', style: TextStyle(color: Colors.orange, fontSize: 12)),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _login,
-                child: _loading 
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('登录', style: TextStyle(fontSize: 18)),
+                ],
               ),
-            ),
-          ],
+              SizedBox(height: ArcoSpacing.xs),
+              Text(
+                '开发模式验证码: 1234',
+                style: ArcoTypography.caption.copyWith(color: ArcoColors.warning),
+              ),
+              SizedBox(height: ArcoSpacing.l),
+              
+              // Login Button
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ArcoButton(
+                  label: '登录',
+                  onPressed: _loading ? null : _login,
+                  type: ArcoButtonType.primary,
+                  size: ArcoButtonSize.large,
+                  loading: _loading,
+                ),
+              ),
+              
+              SizedBox(height: ArcoSpacing.xl),
+            ],
+          ),
         ),
       ),
     );
@@ -241,14 +278,26 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.edit_note), label: 'AI录入'),
-          NavigationDestination(icon: Icon(Icons.sell), label: '销售单'),
-          NavigationDestination(icon: Icon(Icons.inventory_2), label: '商品'),
-          NavigationDestination(icon: Icon(Icons.more_horiz), label: '更多'),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.edit_note),
+            label: 'AI录入',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.sell),
+            label: '销售单',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.inventory_2),
+            label: '商品',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.more_horiz),
+            label: '更多',
+          ),
         ],
       ),
     );
@@ -294,42 +343,57 @@ class _AIInputPageState extends State<AIInputPage> {
       appBar: AppBar(
         title: const Text('AI智能录入'),
         actions: [
-          IconButton(icon: const Icon(Icons.mic), onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('语音识别待对接')));
-          }),
-          IconButton(icon: const Icon(Icons.camera_alt), onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('图片识别待对接')));
-          }),
+          IconButton(
+            icon: const Icon(Icons.mic),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('语音识别待对接')),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.camera_alt),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('图片识别待对接')),
+              );
+            },
+          ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(ArcoSpacing.m),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Input Card
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(ArcoSpacing.m),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('输入订单内容', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
+                    Text(
+                      '输入订单内容',
+                      style: ArcoTypography.title2,
+                    ),
+                    SizedBox(height: ArcoSpacing.s),
                     TextField(
                       controller: _inputController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: '例如：销售可乐10箱@50元，批次:B20260401',
                         border: OutlineInputBorder(),
                       ),
                       maxLines: 3,
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
+                    SizedBox(height: ArcoSpacing.m),
+                    ArcoButton(
+                      label: '智能解析',
                       onPressed: _loading ? null : _parseInput,
-                      icon: _loading 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.auto_fix_high),
-                      label: const Text('智能解析'),
+                      type: ArcoButtonType.primary,
+                      size: ArcoButtonSize.large,
+                      loading: _loading,
+                      icon: Icon(Icons.auto_fix_high, size: 18),
                     ),
                   ],
                 ),
@@ -337,63 +401,75 @@ class _AIInputPageState extends State<AIInputPage> {
             ),
             
             if (_result != null) ...[
-              const SizedBox(height: 16),
+              SizedBox(height: ArcoSpacing.m),
               Card(
-                color: Colors.blue.shade50,
+                color: ArcoColors.primaryLight,
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(ArcoSpacing.m),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.check_circle, color: Colors.green),
-                          const SizedBox(width: 8),
+                          Icon(Icons.check_circle, color: ArcoColors.success),
+                          SizedBox(width: ArcoSpacing.s),
                           Text(
                             '识别成功 · 置信度 ${_result!['parsedOrder']['confidence']}%',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: ArcoTypography.title2,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: ArcoSpacing.s),
                       Text('订单类型: ${_result!['parsedOrder']['orderType'] == 'SALES' ? '销售单' : '采购单'}'),
-                      const Divider(),
-                      const Text('商品明细:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Divider(),
+                      Text('商品明细:', style: ArcoTypography.title2),
                       ...(_result!['parsedOrder']['items'] as List).map((item) => 
                         ListTile(
                           dense: true,
-                          leading: const Icon(Icons.inventory_2),
+                          leading: Icon(Icons.inventory_2, color: ArcoColors.primary),
                           title: Text(item['productName'] ?? ''),
                           subtitle: Text('${item['quantity']} ${item['unit']}'),
-                          trailing: item['price'] != null ? Text('¥${item['price']}') : null,
+                          trailing: item['price'] != null 
+                              ? Text('￥${item['price']}', style: TextStyle(color: ArcoColors.primary))
+                              : null,
                         ),
                       ),
                       if (_result!['parsedOrder']['items'][0]['batchNo'] != null)
-                        Text('批次号: ${_result!['parsedOrder']['items'][0]['batchNo']}', style: const TextStyle(color: Colors.purple)),
-                      const SizedBox(height: 16),
+                        Text(
+                          '批次号: ${_result!['parsedOrder']['items'][0]['batchNo']}',
+                          style: TextStyle(color: Color(0xFF722ED1)),
+                        ),
+                      SizedBox(height: ArcoSpacing.m),
                       Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton(
+                            child: ArcoButton(
+                              label: '取消',
                               onPressed: () => setState(() => _result = null),
-                              child: const Text('取消'),
+                              type: ArcoButtonType.secondary,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: ArcoSpacing.s),
                           Expanded(
-                            child: ElevatedButton.icon(
+                            child: ArcoButton(
+                              label: '确认生成',
                               onPressed: () async {
                                 final res = await ApiService.confirmDraft(_result!['draftId']);
                                 if (res['code'] == 200) {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('订单已生成！')));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('订单已生成！'),
+                                      backgroundColor: ArcoColors.success,
+                                    ),
+                                  );
                                   setState(() {
                                     _result = null;
                                     _inputController.clear();
                                   });
                                 }
                               },
-                              icon: const Icon(Icons.check),
-                              label: const Text('确认生成'),
+                              type: ArcoButtonType.primary,
+                              icon: Icon(Icons.check, size: 18),
                             ),
                           ),
                         ],
@@ -404,18 +480,18 @@ class _AIInputPageState extends State<AIInputPage> {
               ),
             ],
             
-            const SizedBox(height: 16),
-            const Card(
+            SizedBox(height: ArcoSpacing.m),
+            Card(
               child: Padding(
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.all(ArcoSpacing.m),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('录入示例', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
-                    Text('• 销售：可乐10箱@50元'),
-                    Text('• 含批次：可乐10箱@50元，批次:B20260401'),
-                    Text('• 含过期日期：矿泉水5瓶@3元，过期日期:2026-12-31'),
+                    Text('录入示例', style: ArcoTypography.body2.copyWith(fontWeight: FontWeight.bold)),
+                    SizedBox(height: ArcoSpacing.s),
+                    Text('• 销售：可乐10箱@50元', style: ArcoTypography.body3),
+                    Text('• 含批次：可乐10箱@50元，批次:B20260401', style: ArcoTypography.body3),
+                    Text('• 含过期日期：矿泉水5瓶@3元，过期日期:2026-12-31', style: ArcoTypography.body3),
                   ],
                 ),
               ),
@@ -464,27 +540,88 @@ class _SalesOrderListPageState extends State<SalesOrderListPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('销售单')),
       body: _loading 
-        ? const Center(child: CircularProgressIndicator())
+        ? Center(child: CircularProgressIndicator(color: ArcoColors.primary))
         : _orders.isEmpty
-          ? const Center(child: Text('暂无销售单'))
+          ? Center(child: Text('暂无销售单', style: ArcoTypography.body2))
           : ListView.builder(
               itemCount: _orders.length,
               itemBuilder: (context, index) {
                 final order = _orders[index];
-                return ListTile(
-                  leading: Icon(Icons.receipt, color: order['status'] == 'APPROVED' ? Colors.green : Colors.orange),
-                  title: Text(order['orderNo'] ?? ''),
-                  subtitle: Text('${order['customerName'] ?? '未知客户'} | ¥${order['totalAmount'] ?? 0}'),
-                  trailing: Chip(label: Text(order['status'] ?? '')),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => OrderDetailPage(order: order)),
+                final isApproved = order['status'] == 'APPROVED';
+                return Card(
+                  margin: EdgeInsets.symmetric(
+                    horizontal: ArcoSpacing.m,
+                    vertical: ArcoSpacing.xs,
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: isApproved 
+                            ? ArcoColors.successLight 
+                            : ArcoColors.warningLight,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.receipt,
+                        color: isApproved 
+                            ? ArcoColors.success 
+                            : ArcoColors.warning,
+                        size: 24,
+                      ),
+                    ),
+                    title: Text(
+                      order['orderNo'] ?? '',
+                      style: ArcoTypography.body1,
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 4),
+                        Text(
+                          order['customerName'] ?? '未知客户',
+                          style: ArcoTypography.body3,
+                        ),
+                        Text(
+                          '¥${order['totalAmount'] ?? 0}',
+                          style: TextStyle(
+                            color: ArcoColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                    trailing: Chip(
+                      label: Text(
+                        order['status'] ?? '',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isApproved
+                              ? ArcoColors.success
+                              : ArcoColors.warning,
+                        ),
+                      ),
+                      backgroundColor: isApproved
+                          ? ArcoColors.successLight
+                          : ArcoColors.warningLight,
+                    ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OrderDetailPage(order: order),
+                      ),
+                    ),
                   ),
                 );
               },
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AIInputPage())),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AIInputPage()),
+        ),
         child: const Icon(Icons.add),
       ),
     );
@@ -503,52 +640,77 @@ class OrderDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(order['orderNo'] ?? '订单详情')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(ArcoSpacing.m),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(ArcoSpacing.m),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('基本信息', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    Text('客户: ${order['customerName'] ?? ''}'),
-                    Text('状态: ${order['status'] ?? ''}'),
-                    Text('日期: ${order['orderDate'] ?? ''}'),
-                    if (order['aiSource'] != null)
-                      Text('AI来源: ${order['aiSource']}', style: const TextStyle(color: Colors.purple)),
+                    Text('基本信息', style: ArcoTypography.title2),
+                    SizedBox(height: ArcoSpacing.s),
+                    Text('客户: ${order['customerName'] ?? ''}', style: ArcoTypography.body2),
+                    SizedBox(height: ArcoSpacing.xs),
+                    Text('状态: ${order['status'] ?? ''}', style: ArcoTypography.body2),
+                    SizedBox(height: ArcoSpacing.xs),
+                    Text('日期: ${order['orderDate'] ?? ''}', style: ArcoTypography.body2),
+                    if (order['aiSource'] != null) ...[
+                      SizedBox(height: ArcoSpacing.xs),
+                      Text(
+                        'AI来源: ${order['aiSource']}',
+                        style: TextStyle(color: Color(0xFF722ED1)),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: ArcoSpacing.m),
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(ArcoSpacing.m),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('商品明细', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
+                    Text('商品明细', style: ArcoTypography.title2),
+                    SizedBox(height: ArcoSpacing.s),
                     ...details.map((d) => ListTile(
                       dense: true,
-                      title: Text(d['productName'] ?? ''),
+                      leading: Icon(Icons.inventory_2, color: ArcoColors.primary, size: 20),
+                      title: Text(d['productName'] ?? '', style: ArcoTypography.body2),
                       subtitle: Text('${d['quantity']} ${d['unit']} × ¥${d['price'] ?? 0}'),
-                      trailing: Text('¥${d['amount'] ?? 0}'),
+                      trailing: Text(
+                        '¥${d['amount'] ?? 0}',
+                        style: TextStyle(
+                          color: ArcoColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       isThreeLine: d['batchNo'] != null,
                       onTap: () {
                         if (d['batchNo'] != null) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('批次号: ${d['batchNo']}')),
+                            SnackBar(
+                              content: Text('批次号: ${d['batchNo']}'),
+                              backgroundColor: ArcoColors.textPrimary,
+                            ),
                           );
                         }
                       },
                     )),
-                    const Divider(),
-                    Text('合计: ¥${order['totalAmount'] ?? 0}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Divider(),
+                    SizedBox(height: ArcoSpacing.s),
+                    Text(
+                      '合计: ¥${order['totalAmount'] ?? 0}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: ArcoColors.primary,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -595,31 +757,145 @@ class _ProductListPageState extends State<ProductListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('商品管理')),
+      appBar: AppBar(
+        title: const Text('商品管理'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.add, color: Colors.white),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ProductCreatePage(),
+                ),
+              );
+              if (result == true) {
+                _loadProducts();
+              }
+            },
+          ),
+        ],
+      ),
       body: _loading 
-        ? const Center(child: CircularProgressIndicator())
+        ? Center(child: CircularProgressIndicator(color: ArcoColors.primary))
         : _products.isEmpty
-          ? const Center(child: Text('暂无商品'))
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inventory_2_outlined, size: 64, color: ArcoColors.textPlaceholder),
+                  SizedBox(height: ArcoSpacing.m),
+                  Text('暂无商品', style: ArcoTypography.body2),
+                  SizedBox(height: ArcoSpacing.s),
+                  ArcoButton(
+                    label: '添加商品',
+                    type: ArcoButtonType.primary,
+                    size: ArcoButtonSize.medium,
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProductCreatePage(),
+                        ),
+                      );
+                      if (result == true) {
+                        _loadProducts();
+                      }
+                    },
+                  ),
+                ],
+              ),
+            )
           : ListView.builder(
               itemCount: _products.length,
               itemBuilder: (context, index) {
                 final p = _products[index];
-                return ListTile(
-                  leading: const Icon(Icons.inventory_2),
-                  title: Text(p['name'] ?? ''),
-                  subtitle: Text('编码: ${p['code'] ?? ''} | ${p['unit'] ?? ''}'),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('¥${p['salePrice'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      if (p['enableBatch'] == 1)
-                        const Icon(Icons.calendar_today, size: 16, color: Colors.purple),
-                    ],
+                return Card(
+                  margin: EdgeInsets.symmetric(
+                    horizontal: ArcoSpacing.m,
+                    vertical: ArcoSpacing.xs,
                   ),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => ProductDetailPage(product: p)),
+                  child: ListTile(
+                    leading: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: ArcoColors.primaryLight,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.inventory_2,
+                        color: ArcoColors.primary,
+                        size: 24,
+                      ),
+                    ),
+                    title: Text(
+                      p['name'] ?? '',
+                      style: ArcoTypography.body1,
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 4),
+                        Text(
+                          '编码: ${p['code'] ?? ''}',
+                          style: ArcoTypography.body3,
+                        ),
+                        Text(
+                          '${p['unit'] ?? ''}',
+                          style: ArcoTypography.body3,
+                        ),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '¥${p['salePrice'] ?? 0}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: ArcoColors.primary,
+                                fontSize: 16,
+                              ),
+                            ),
+                            if (p['enableBatch'] == 1) ...[
+                              SizedBox(height: 4),
+                              Icon(
+                                Icons.calendar_today,
+                                size: 16,
+                                color: Color(0xFF722ED1),
+                              ),
+                            ],
+                          ],
+                        ),
+                        SizedBox(width: ArcoSpacing.s),
+                        IconButton(
+                          icon: Icon(Icons.edit, color: ArcoColors.primary, size: 20),
+                          onPressed: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ProductCreatePage(),
+                                settings: RouteSettings(arguments: p['id']),
+                              ),
+                            );
+                            if (result == true) {
+                              _loadProducts();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProductDetailPage(product: p),
+                      ),
+                    ),
                   ),
                 );
               },
@@ -670,27 +946,35 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Scaffold(
       appBar: AppBar(title: Text(p['name'] ?? '商品详情')),
       body: _loading 
-        ? const Center(child: CircularProgressIndicator())
+        ? Center(child: CircularProgressIndicator(color: ArcoColors.primary))
         : SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(ArcoSpacing.m),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 基本信息
                 Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(ArcoSpacing.m),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('基本信息', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 12),
-                        Text('编码: ${p['code'] ?? ''}'),
-                        Text('条码: ${p['barcode'] ?? ''}'),
-                        Text('单位: ${p['unit'] ?? ''}'),
-                        Text('销售价: ¥${p['salePrice'] ?? 0}'),
-                        Text('进货价: ¥${p['purchasePrice'] ?? 0}'),
-                        Text('库存: ${p['stock'] ?? 0}'),
+                        Text('基本信息', style: ArcoTypography.title2),
+                        SizedBox(height: ArcoSpacing.s),
+                        Text('编码: ${p['code'] ?? ''}', style: ArcoTypography.body2),
+                        SizedBox(height: ArcoSpacing.xs),
+                        Text('条码: ${p['barcode'] ?? ''}', style: ArcoTypography.body2),
+                        SizedBox(height: ArcoSpacing.xs),
+                        Text('单位: ${p['unit'] ?? ''}', style: ArcoTypography.body2),
+                        SizedBox(height: ArcoSpacing.xs),
+                        Text(
+                          '销售价: ¥${p['salePrice'] ?? 0}',
+                          style: TextStyle(color: ArcoColors.primary, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: ArcoSpacing.xs),
+                        Text('进货价: ¥${p['purchasePrice'] ?? 0}', style: ArcoTypography.body2),
+                        SizedBox(height: ArcoSpacing.xs),
+                        Text('库存: ${p['stock'] ?? 0}', style: ArcoTypography.body2),
                       ],
                     ),
                   ),
@@ -699,46 +983,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 // 启用功能
                 Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(ArcoSpacing.m),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('启用功能', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Icon(p['enableMultiUnit'] == 1 ? Icons.check_circle : Icons.cancel, 
-                                 color: p['enableMultiUnit'] == 1 ? Colors.green : Colors.grey),
-                            const SizedBox(width: 8),
-                            const Text('多单位'),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Icon(p['enableBatch'] == 1 ? Icons.check_circle : Icons.cancel,
-                                 color: p['enableBatch'] == 1 ? Colors.green : Colors.grey),
-                            const SizedBox(width: 8),
-                            const Text('批次管理'),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Icon(p['enableExpiry'] == 1 ? Icons.check_circle : Icons.cancel,
-                                 color: p['enableExpiry'] == 1 ? Colors.green : Colors.grey),
-                            const SizedBox(width: 8),
-                            const Text('保质期'),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Icon(p['enableSerial'] == 1 ? Icons.check_circle : Icons.cancel,
-                                 color: p['enableSerial'] == 1 ? Colors.green : Colors.grey),
-                            const SizedBox(width: 8),
-                            const Text('序列号'),
-                          ],
-                        ),
-                        if (p['shelfLifeDays'] != null)
-                          Text('保质期天数: ${p['shelfLifeDays']}天'),
+                        Text('启用功能', style: ArcoTypography.title2),
+                        SizedBox(height: ArcoSpacing.s),
+                        _buildFeatureRow('多单位', p['enableMultiUnit'] == 1),
+                        SizedBox(height: ArcoSpacing.xs),
+                        _buildFeatureRow('批次管理', p['enableBatch'] == 1),
+                        SizedBox(height: ArcoSpacing.xs),
+                        _buildFeatureRow('保质期', p['enableExpiry'] == 1),
+                        SizedBox(height: ArcoSpacing.xs),
+                        _buildFeatureRow('序列号', p['enableSerial'] == 1),
+                        if (p['shelfLifeDays'] != null) ...[
+                          SizedBox(height: ArcoSpacing.xs),
+                          Text('保质期天数: ${p['shelfLifeDays']}天', style: ArcoTypography.body3),
+                        ],
                       ],
                     ),
                   ),
@@ -748,17 +1009,21 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 if (_units.isNotEmpty)
                   Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(ArcoSpacing.m),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('单位换算', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 12),
+                          Text('单位换算', style: ArcoTypography.title2),
+                          SizedBox(height: ArcoSpacing.s),
                           ..._units.map((u) => ListTile(
                             dense: true,
-                            title: Text(u['unitName'] ?? ''),
+                            leading: Icon(Icons.swap_horiz, color: ArcoColors.primary, size: 20),
+                            title: Text(u['unitName'] ?? '', style: ArcoTypography.body2),
                             subtitle: Text('换算比: ${u['ratio'] ?? 1}'),
-                            trailing: Text('¥${u['salePrice'] ?? 0}'),
+                            trailing: Text(
+                              '¥${u['salePrice'] ?? 0}',
+                              style: TextStyle(color: ArcoColors.primary, fontWeight: FontWeight.bold),
+                            ),
                           )),
                         ],
                       ),
@@ -769,16 +1034,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 if (_barcodes.isNotEmpty)
                   Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(ArcoSpacing.m),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('条码列表', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 12),
+                          Text('条码列表', style: ArcoTypography.title2),
+                          SizedBox(height: ArcoSpacing.s),
                           ..._barcodes.map((b) => ListTile(
                             dense: true,
-                            leading: Icon(b['isMain'] == 1 ? Icons.star : Icons.qr_code),
-                            title: Text(b['barcode'] ?? ''),
+                            leading: Icon(
+                              b['isMain'] == 1 ? Icons.star : Icons.qr_code,
+                              color: b['isMain'] == 1 ? ArcoColors.warning : ArcoColors.primary,
+                              size: 20,
+                            ),
+                            title: Text(b['barcode'] ?? '', style: ArcoTypography.body2),
                             subtitle: Text('${b['unitName'] ?? ''} | ¥${b['salePrice'] ?? 0}'),
                           )),
                         ],
@@ -788,6 +1057,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ],
             ),
           ),
+    );
+  }
+
+  Widget _buildFeatureRow(String label, bool enabled) {
+    return Row(
+      children: [
+        Icon(
+          enabled ? Icons.check_circle : Icons.cancel,
+          color: enabled ? ArcoColors.success : ArcoColors.textPlaceholder,
+          size: 20,
+        ),
+        SizedBox(width: ArcoSpacing.s),
+        Text(
+          label,
+          style: TextStyle(
+            color: enabled ? ArcoColors.textPrimary : ArcoColors.textTertiary,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -802,46 +1090,39 @@ class MorePage extends StatelessWidget {
       appBar: AppBar(title: const Text('更多')),
       body: ListView(
         children: [
-          ListTile(
-            leading: const Icon(Icons.people),
-            title: const Text('客户管理'),
-            subtitle: const Text('客户价格本、信用额度'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.business),
-            title: const Text('供应商管理'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.store),
-            title: const Text('仓库管理'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.inventory),
-            title: const Text('库存查询'),
-            subtitle: const Text('批次库存、过期预警'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.qr_code),
-            title: const Text('条码管理'),
-            subtitle: const Text('扫码录入、条码打印'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('系统设置'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.info),
-            title: const Text('API地址'),
-            subtitle: const Text('http://42.193.169.78:8090'),
-            onTap: () {},
-          ),
+          _buildMenuItem(Icons.people, '客户管理', '客户价格本、信用额度'),
+          _buildMenuItem(Icons.business, '供应商管理', null),
+          _buildMenuItem(Icons.store, '仓库管理', null),
+          _buildMenuItem(Icons.inventory, '库存查询', '批次库存、过期预警'),
+          _buildMenuItem(Icons.qr_code, '条码管理', '扫码录入、条码打印'),
+          _buildMenuItem(Icons.settings, '系统设置', null),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(IconData icon, String title, String? subtitle) {
+    return Card(
+      margin: EdgeInsets.symmetric(
+        horizontal: ArcoSpacing.m,
+        vertical: ArcoSpacing.xs,
+      ),
+      child: ListTile(
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: ArcoColors.primaryLight,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: ArcoColors.primary, size: 20),
+        ),
+        title: Text(title, style: ArcoTypography.body1),
+        subtitle: subtitle != null 
+            ? Text(subtitle, style: ArcoTypography.body3)
+            : null,
+        trailing: Icon(Icons.chevron_right, color: ArcoColors.textTertiary),
+        onTap: () {},
       ),
     );
   }

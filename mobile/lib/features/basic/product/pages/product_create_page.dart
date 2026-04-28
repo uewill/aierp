@@ -1,16 +1,8 @@
-import 'package:aierp_mobile/core/theme/app_theme.dart';
-/// 商品创建/编辑页面 - Tab式结构
-/// 支持单规格和多规格商品，多单位管理
+import 'package:aierp_mobile/arco_design/arco_design.dart';
+/// 商品创建/编辑页面 - 重构版
+/// 使用 Arco Design Mobile 规范
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:tdesign_flutter/tdesign_flutter.dart';
-import 'package:aierp_mobile/data/models/models.dart';
-import 'package:aierp_mobile/data/providers/app_providers.dart';
-import 'package:aierp_mobile/models/spec_attribute.dart';
-import 'package:aierp_mobile/models/unit_conversion.dart';
-import 'package:aierp_mobile/features/basic/product/widgets/spec_attribute_editor.dart';
-import 'package:aierp_mobile/features/basic/product/widgets/unit_conversion_editor.dart';
 
 class ProductCreatePage extends StatefulWidget {
   const ProductCreatePage({super.key});
@@ -20,34 +12,35 @@ class ProductCreatePage extends StatefulWidget {
 }
 
 class _ProductCreatePageState extends State<ProductCreatePage> {
-  // 表单数据 - 基础信息
   String? _productId;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _brandController = TextEditingController();
   final TextEditingController _barCodeController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   String? _categoryId;
+  
+  // 单位设置
   String _baseUnit = '个';
-  final TextEditingController _baseUnitController = TextEditingController(text: '个');
+  bool _enableMultiUnit = false;
+  List<Map<String, dynamic>> _units = [];
+  
+  // 批次及保质期
+  bool _enableBatch = false;
+  bool _enableExpiry = false;
+  int? _shelfLifeDays;
+  
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _costPriceController = TextEditingController();
   
-  // 规格型号数据
+  // 规格型号
   bool _hasSpec = false;
-  List<SpecAttribute> _specAttributes = [];
-  List<ProductSku> _generatedSkus = [];
-  
-  // 单位设置数据
-  List<UnitConversion> _unitConversions = [];
+  List<Map<String, dynamic>> _specList = [];
   
   bool _isLoading = false;
   int _currentTab = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
+  
+  final List<String> _commonUnits = ['个', '件', '瓶', '盒', '箱', '包', '袋', '桶', '罐', '支'];
+  final List<String> _categories = ['电子产品', '服装', '食品', '日用品', '办公用品'];
 
   @override
   void dispose() {
@@ -55,91 +48,69 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
     _brandController.dispose();
     _barCodeController.dispose();
     _descriptionController.dispose();
-    _baseUnitController.dispose();
     _priceController.dispose();
     _costPriceController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadData() async {
-    await context.read<CategoryProvider>().loadCategories();
-    
-    final args = ModalRoute.of(context)?.settings.arguments;
-    if (args != null && args is String) {
-      _productId = args;
-      await _loadProduct(args);
-    }
-  }
-
-  Future<void> _loadProduct(String id) async {
-    setState(() => _isLoading = true);
-    // TODO: 从API加载商品数据
-    setState(() => _isLoading = false);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: ArcoColors.background,
       appBar: AppBar(
         title: Text(_productId == null ? '添加商品' : '编辑商品'),
-        backgroundColor: AppTheme.brandColor7,
+        backgroundColor: ArcoColors.primary,
         leading: IconButton(
           icon: const Icon(Icons.chevron_left),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : Column(
-          children: [
-            _buildTabBar(context),
-            Expanded(
-              child: IndexedStack(
-                index: _currentTab,
-                children: [
-                  _buildBasicInfoTab(context),
-                  _buildSpecTab(context),
-                  _buildUnitTab(context),
-                ],
-              ),
+      body: Column(
+        children: [
+          _buildTabBar(),
+          Expanded(
+            child: IndexedStack(
+              index: _currentTab,
+              children: [
+                _buildBasicInfoTab(),
+                _buildSpecTab(),
+                _buildBatchTab(),
+              ],
             ),
-          ],
-        ),
-      bottomNavigationBar: _buildBottomActions(context),
+          ),
+        ],
+      ),
+      bottomNavigationBar: _buildBottomActions(),
     );
   }
 
-  /// Tab导航栏
-  Widget _buildTabBar(BuildContext context) {
+  Widget _buildTabBar() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)],
       ),
       child: Row(
         children: [
-          _buildTabItem(context, 0, '基础信息', Icons.home),
-          _buildTabItem(context, 1, '规格型号', Icons.view_module),
-          _buildTabItem(context, 2, '单位设置', Icons.swap_horiz),
+          _buildTabItem(0, '基础信息', Icons.home),
+          _buildTabItem(1, '规格型号', Icons.view_module),
+          _buildTabItem(2, '批次保质', Icons.calendar_today),
         ],
       ),
     );
   }
 
-  Widget _buildTabItem(BuildContext context, int index, String title, IconData icon) {
+  Widget _buildTabItem(int index, String title, IconData icon) {
     final isSelected = _currentTab == index;
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _currentTab = index),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: EdgeInsets.symmetric(vertical: ArcoSpacing.s),
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: isSelected ? AppTheme.brandColor7 : Colors.transparent,
+                color: isSelected ? ArcoColors.primary : Colors.transparent,
                 width: 2,
               ),
             ),
@@ -147,16 +118,12 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                color: isSelected ? AppTheme.brandColor7 : Colors.grey.shade600,
-                size: 20,
-              ),
-              const SizedBox(height: 4),
+              Icon(icon, color: isSelected ? ArcoColors.primary : ArcoColors.textSecondary, size: 20),
+              SizedBox(height: ArcoSpacing.xs),
               Text(
                 title,
                 style: TextStyle(
-                  color: isSelected ? AppTheme.brandColor7 : Colors.grey[600]!,
+                  color: isSelected ? ArcoColors.primary : ArcoColors.textSecondary,
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
@@ -168,681 +135,402 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
     );
   }
 
-  /// Tab 1: 基础信息 - 卡片式布局
-  Widget _buildBasicInfoTab(BuildContext context) {
+  Widget _buildBasicInfoTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(ArcoSpacing.m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 商品基本信息卡片
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2)),
-              ],
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.inventory_2, color: AppTheme.brandColor8, size: 20),
-                    const SizedBox(width: 8),
-                    const Text('商品信息', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                
-                // 商品名称
-                TextField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: '商品名称',
-                    hintText: '请输入商品名称',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // 商品分类
-                _buildCategorySelector(context),
-                
-                const SizedBox(height: 12),
-                
-                // 品牌
-                TextField(
-                  controller: _brandController,
-                  decoration: InputDecoration(
-                    labelText: '品牌',
-                    hintText: '可选',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // 条码
-                TextField(
-                  controller: _barCodeController,
-                  decoration: InputDecoration(
-                    labelText: '条码',
-                    hintText: '可选',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // 描述
-                TextField(
-                  controller: _descriptionController,
-                  decoration: InputDecoration(
-                    labelText: '商品描述',
-                    hintText: '可选',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                  maxLines: 2,
-                ),
-              ],
-            ),
+          // 商品信息卡片
+          _buildCard(
+            title: '商品信息',
+            icon: Icons.inventory_2,
+            children: [
+              ArcoInputItem(
+                label: '商品名称',
+                hintText: '请输入商品名称',
+                controller: _nameController,
+                showClear: true,
+              ),
+              SizedBox(height: ArcoSpacing.s),
+              
+              ArcoPicker<String>(
+                title: '商品分类',
+                items: _categories,
+                value: _categoryId != null ? _categories[int.tryParse(_categoryId!) ?? 0] : null,
+                itemLabel: (c) => c,
+                placeholder: '请选择分类',
+                prefixIcon: Icon(Icons.category_outlined, color: ArcoColors.textSecondary, size: 18),
+                onSelected: (category) {
+                  if (category != null) {
+                    setState(() => _categoryId = _categories.indexOf(category).toString());
+                  }
+                },
+              ),
+              SizedBox(height: ArcoSpacing.s),
+              
+              ArcoInputItem(
+                label: '品牌',
+                hintText: '可选',
+                controller: _brandController,
+                showClear: true,
+              ),
+              SizedBox(height: ArcoSpacing.s),
+              
+              ArcoInputItem(
+                label: '条码',
+                hintText: '可选',
+                controller: _barCodeController,
+                showClear: true,
+              ),
+              SizedBox(height: ArcoSpacing.s),
+              
+              ArcoTextArea(
+                label: '商品描述',
+                hintText: '可选',
+                controller: _descriptionController,
+                maxLines: 2,
+              ),
+            ],
           ),
           
-          const SizedBox(height: 16),
+          SizedBox(height: ArcoSpacing.m),
           
-          // 价格和单位卡片
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2)),
-              ],
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.payments_outlined, color: AppTheme.brandColor8, size: 20),
-                    const SizedBox(width: 8),
-                    const Text('价格和单位', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                
-                // 基础单位
-                TextField(
-                  controller: _baseUnitController,
-                  decoration: InputDecoration(
-                    labelText: '基础单位',
-                    hintText: '如：个、件、瓶',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                  onChanged: (text) {
-                    setState(() => _baseUnit = text);
-                  },
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // 售价
-                TextField(
-                  controller: _priceController,
-                  decoration: InputDecoration(
-                    labelText: '售价',
-                    hintText: '0.00',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                    prefixText: '¥ ',
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // 成本价
-                TextField(
-                  controller: _costPriceController,
-                  decoration: InputDecoration(
-                    labelText: '成本价',
-                    hintText: '0.00',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                    prefixText: '¥ ',
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                
-                const SizedBox(height: 8),
-                
-                Text(
-                  '基础价格适用于单规格商品或SKU默认价格',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                ),
-              ],
-            ),
+          // 价格卡片
+          _buildCard(
+            title: '价格信息',
+            icon: Icons.payments_outlined,
+            children: [
+              ArcoInputItem(
+                label: '售价',
+                hintText: '0.00',
+                controller: _priceController,
+                keyboardType: TextInputType.number,
+                prefixIcon: Text('¥', style: TextStyle(color: ArcoColors.textSecondary)),
+              ),
+              SizedBox(height: ArcoSpacing.s),
+              
+              ArcoInputItem(
+                label: '成本价',
+                hintText: '0.00',
+                controller: _costPriceController,
+                keyboardType: TextInputType.number,
+                prefixIcon: Text('¥', style: TextStyle(color: ArcoColors.textSecondary)),
+              ),
+            ],
           ),
           
-          const SizedBox(height: 100),
+          SizedBox(height: ArcoSpacing.m),
+          
+          // 单位设置卡片
+          _buildCard(
+            title: '单位设置',
+            icon: Icons.straighten,
+            children: [
+              ArcoPicker<String>(
+                title: '基础单位',
+                items: _commonUnits,
+                value: _baseUnit,
+                itemLabel: (u) => u,
+                onSelected: (unit) {
+                  if (unit != null) setState(() => _baseUnit = unit);
+                },
+              ),
+              SizedBox(height: ArcoSpacing.m),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('启用多单位', style: ArcoTypography.body2),
+                  Switch(
+                    value: _enableMultiUnit,
+                    onChanged: (v) => setState(() => _enableMultiUnit = v),
+                    activeColor: ArcoColors.primary,
+                  ),
+                ],
+              ),
+              
+              if (_enableMultiUnit) ...[
+                SizedBox(height: ArcoSpacing.m),
+                Divider(),
+                SizedBox(height: ArcoSpacing.s),
+                
+                ..._units.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final unit = entry.value;
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: ArcoSpacing.s),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: ArcoInputItem(
+                            label: '单位',
+                            hintText: '如：箱',
+                            controller: TextEditingController(text: unit['name']),
+                            onChanged: (v) => setState(() => _units[index]['name'] = v),
+                          ),
+                        ),
+                        SizedBox(width: ArcoSpacing.s),
+                        Expanded(
+                          flex: 1,
+                          child: ArcoInputItem(
+                            label: '换算率',
+                            hintText: '1',
+                            keyboardType: TextInputType.number,
+                            controller: TextEditingController(text: unit['ratio'].toString()),
+                            onChanged: (v) => setState(() => _units[index]['ratio'] = double.tryParse(v) ?? 1.0),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete, color: ArcoColors.danger, size: 20),
+                          onPressed: () => setState(() => _units.removeAt(index)),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                
+                SizedBox(height: ArcoSpacing.s),
+                ArcoButton(
+                  label: '+ 添加单位',
+                  type: ArcoButtonType.secondary,
+                  size: ArcoButtonSize.small,
+                  onPressed: () => setState(() => _units.add({'name': '', 'ratio': 1.0})),
+                ),
+              ],
+            ],
+          ),
+          
+          SizedBox(height: 100),
         ],
       ),
     );
   }
 
-  Widget _buildCategorySelector(BuildContext context) {
-    return Consumer<CategoryProvider>(
-      builder: (context, categoryProvider, child) {
-        final categories = categoryProvider.categories.where((c) => c.level == 1).toList();
-        final selectedCategory = categories.where((c) => c.id == _categoryId).firstOrNull;
-        
-        return GestureDetector(
-          onTap: () => _showCategoryPicker(context, categories),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.category_outlined, color: Colors.grey.shade600, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  '商品分类',
-                  style: const TextStyle(fontSize: 14),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: selectedCategory != null ? AppTheme.brandColor1 : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                    border: selectedCategory != null 
-                      ? Border.all(color: AppTheme.brandColor6)
-                      : Border.all(color: Colors.grey.shade400),
-                  ),
-                  child: Text(
-                    selectedCategory?.name ?? '请选择',
-                    style: TextStyle(
-                      color: selectedCategory != null ? AppTheme.brandColor8 : Colors.grey.shade600,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(Icons.chevron_right, color: Colors.grey.shade600),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showCategoryPicker(BuildContext context, List<Category> categories) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => Container(
-        height: 300,
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Row(
+  Widget _buildSpecTab() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(ArcoSpacing.m),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCard(
+            title: '规格设置',
+            icon: Icons.view_module,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('选择分类', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(ctx),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('多规格商品', style: ArcoTypography.title2),
+                      SizedBox(height: 4),
+                      Text(
+                        _hasSpec ? '已启用多规格' : '单规格商品',
+                        style: ArcoTypography.body3.copyWith(color: ArcoColors.textSecondary),
                       ),
-                      child: const Icon(Icons.close, size: 18),
-                    ),
+                    ],
+                  ),
+                  Switch(
+                    value: _hasSpec,
+                    onChanged: (v) => setState(() => _hasSpec = v),
+                    activeColor: ArcoColors.primary,
                   ),
                 ],
               ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: categories.length,
-                itemBuilder: (context, index) {
-                  final category = categories[index];
-                  final isSelected = category.id == _categoryId;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() => _categoryId = category.id);
-                      Navigator.pop(ctx);
-                    },
+              
+              if (_hasSpec) ...[
+                SizedBox(height: ArcoSpacing.m),
+                Divider(),
+                SizedBox(height: ArcoSpacing.s),
+                
+                ..._specList.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final spec = entry.value;
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: ArcoSpacing.m),
                     child: Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(ArcoSpacing.s),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppTheme.brandColor1 : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: isSelected 
-                          ? Border.all(color: AppTheme.brandColor8, width: 2)
-                          : Border.all(color: Colors.grey.shade200),
+                        color: ArcoColors.fill1,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.category,
-                            color: isSelected ? AppTheme.brandColor8 : Colors.grey.shade600,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ArcoInputItem(
+                                  label: '规格名',
+                                  hintText: '如：颜色',
+                                  controller: TextEditingController(text: spec['name']),
+                                  onChanged: (v) => setState(() => _specList[index]['name'] = v),
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete, color: ArcoColors.danger, size: 20),
+                                onPressed: () => setState(() => _specList.removeAt(index)),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          Text(
-                            category.name,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                              color: isSelected ? AppTheme.brandColor8 : Colors.black,
-                            ),
+                          SizedBox(height: ArcoSpacing.s),
+                          
+                          Text('规格值（用逗号分隔）', style: ArcoTypography.body3),
+                          SizedBox(height: ArcoSpacing.xs),
+                          ArcoInputItem(
+                            label: '',
+                            hintText: '如：红色,蓝色,绿色',
+                            controller: TextEditingController(text: (spec['values'] as List?)?.join(',') ?? ''),
+                            onChanged: (v) {
+                              setState(() {
+                                _specList[index]['values'] = v.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+                              });
+                            },
                           ),
-                          const Spacer(),
-                          if (isSelected)
-                            Icon(Icons.check_circle, color: AppTheme.brandColor8),
                         ],
                       ),
                     ),
                   );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Tab 2: 规格型号 - 卡片式布局
-  Widget _buildSpecTab(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 规格开关卡片
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2)),
-              ],
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.view_module, color: AppTheme.brandColor8, size: 20),
-                        const SizedBox(width: 8),
-                        const Text('多规格商品', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _hasSpec ? '启用多规格，可设置不同规格价格' : '单规格商品，使用基础价格',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                    ),
-                  ],
-                ),
-                Switch(
-                  value: _hasSpec,
-                  onChanged: (value) => setState(() => _hasSpec = value),
-                  activeColor: AppTheme.brandColor8,
+                }),
+                
+                SizedBox(height: ArcoSpacing.s),
+                ArcoButton(
+                  label: '+ 添加规格',
+                  type: ArcoButtonType.secondary,
+                  size: ArcoButtonSize.small,
+                  onPressed: () => setState(() => _specList.add({'name': '', 'values': []})),
                 ),
               ],
-            ),
+            ],
           ),
           
-          const SizedBox(height: 16),
-          
-          // 规格属性编辑器（卡片式）
-          if (_hasSpec)
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2)),
-                ],
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.layers, color: AppTheme.brandColor8, size: 20),
-                      const SizedBox(width: 8),
-                      const Text('规格属性', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '添加规格属性，系统将自动生成SKU组合',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                  ),
-                  const SizedBox(height: 16),
-                  SpecAttributeEditor(
-                    attributes: _specAttributes,
-                    onAttributesChanged: (attributes) {
-                      setState(() => _specAttributes = attributes);
-                      _generateSkus();
-                    },
-                  ),
-                ],
-              ),
-            ),
-          
-          // 生成的SKU列表卡片
-          if (_hasSpec && _generatedSkus.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(top: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2)),
-                ],
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.grid_view, color: AppTheme.brandColor8, size: 20),
-                      const SizedBox(width: 8),
-                      const Text('SKU列表', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF2F0),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '已生成 ${_generatedSkus.length} 个SKU组合',
-                      style: const TextStyle(color: Color(0xFFFF4D4F), fontSize: 13),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ..._generatedSkus.map((sku) => _buildSkuCard(context, sku)),
-                ],
-              ),
-            ),
-          
-          const SizedBox(height: 100),
+          SizedBox(height: 100),
         ],
       ),
     );
   }
 
-  /// SKU卡片 - 参考图片样式
-  Widget _buildSkuCard(BuildContext context, ProductSku sku) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
+  Widget _buildBatchTab() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(ArcoSpacing.m),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // SKU规格值标签
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: sku.specValues.map((v) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF2F0),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFFF4D4F)),
-                    ),
-                    child: Text(v.name, style: const TextStyle(color: Color(0xFFFF4D4F), fontSize: 11)),
-                  )).toList(),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '条码: ${sku.barCode ?? "-"}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          ),
-          // 价格信息
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          _buildCard(
+            title: '批次管理',
+            icon: Icons.calendar_today,
             children: [
-              Text(
-                '¥${sku.price.toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFFFF4D4F)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('启用批次', style: ArcoTypography.body2),
+                  Switch(
+                    value: _enableBatch,
+                    onChanged: (v) => setState(() => _enableBatch = v),
+                    activeColor: ArcoColors.primary,
+                  ),
+                ],
               ),
+              SizedBox(height: ArcoSpacing.xs),
               Text(
-                '成本 ¥${sku.costPrice.toStringAsFixed(2)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                '启用后可对商品进行批次追踪',
+                style: ArcoTypography.body3.copyWith(color: ArcoColors.textSecondary),
               ),
             ],
           ),
+          
+          SizedBox(height: ArcoSpacing.m),
+          
+          _buildCard(
+            title: '保质期设置',
+            icon: Icons.access_time,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('启用保质期', style: ArcoTypography.body2),
+                  Switch(
+                    value: _enableExpiry,
+                    onChanged: (v) => setState(() => _enableExpiry = v),
+                    activeColor: ArcoColors.primary,
+                  ),
+                ],
+              ),
+              
+              if (_enableExpiry) ...[
+                SizedBox(height: ArcoSpacing.m),
+                ArcoInputItem(
+                  label: '保质期天数',
+                  hintText: '如：365',
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => setState(() => _shelfLifeDays = int.tryParse(v)),
+                ),
+              ],
+            ],
+          ),
+          
+          SizedBox(height: 100),
         ],
       ),
     );
   }
 
-  /// 自动生成SKU组合
-  void _generateSkus() {
-    if (_specAttributes.isEmpty) {
-      _generatedSkus = [];
-      return;
-    }
-
-    final skuCombinations = <List<String>>[];
-    void generateCombination(int index, List<String> current) {
-      if (index >= _specAttributes.length) {
-        skuCombinations.add(List.from(current));
-        return;
-      }
-      
-      for (final value in _specAttributes[index].values) {
-        current.add(value);
-        generateCombination(index + 1, current);
-        current.removeLast();
-      }
-    }
-    
-    generateCombination(0, []);
-    
-    final basePrice = double.tryParse(_priceController.text) ?? 0;
-    final baseCostPrice = double.tryParse(_costPriceController.text) ?? 0;
-    
-    _generatedSkus = skuCombinations.map((combination) {
-      final skuId = 'sku_${DateTime.now().millisecondsSinceEpoch}_${combination.join('_')}';
-      return ProductSku(
-        id: skuId,
-        productId: _productId ?? 'prod_temp',
-        skuCode: skuId,
-        price: basePrice,
-        costPrice: baseCostPrice,
-        specValues: combination.asMap().entries.map((entry) {
-          return SpecValue(
-            id: '${_specAttributes[entry.key].name}_${entry.value}',
-            name: entry.value,
-            specId: _specAttributes[entry.key].name,
-          );
-        }).toList(),
-        unitId: 'unit_base',
-      );
-    }).toList();
-  }
-
-  /// Tab 3: 单位设置 - 卡片式布局
-  Widget _buildUnitTab(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+  Widget _buildCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8)],
+      ),
+      padding: EdgeInsets.all(ArcoSpacing.m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 基础单位卡片
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2)),
-              ],
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.straighten, color: AppTheme.brandColor8, size: 20),
-                    const SizedBox(width: 8),
-                    const Text('基础单位', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: _baseUnit.isEmpty ? Colors.grey.shade100 : AppTheme.brandColor1,
-                    borderRadius: BorderRadius.circular(8),
-                    border: _baseUnit.isEmpty ? null : Border.all(color: AppTheme.brandColor6),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        _baseUnit.isEmpty ? '请在基础信息中设置' : _baseUnit,
-                        style: TextStyle(
-                          color: _baseUnit.isEmpty ? Colors.grey.shade600 : AppTheme.brandColor8,
-                          fontSize: 14,
-                          fontWeight: _baseUnit.isEmpty ? FontWeight.normal : FontWeight.w600,
-                        ),
-                      ),
-                      const Spacer(),
-                      _baseUnit.isEmpty
-                        ? Icon(Icons.warning_amber, color: Colors.orange, size: 18)
-                        : Icon(Icons.check_circle, color: AppTheme.brandColor8, size: 18),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          Row(
+            children: [
+              Icon(icon, color: ArcoColors.primary, size: 20),
+              SizedBox(width: ArcoSpacing.s),
+              Text(title, style: ArcoTypography.title2),
+            ],
           ),
-          
-          const SizedBox(height: 16),
-          
-          // 单位换算编辑器卡片
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2)),
-              ],
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.swap_horiz, color: AppTheme.brandColor8, size: 20),
-                    const SizedBox(width: 8),
-                    const Text('单位换算', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '设置多单位换算关系，如：1箱=24个',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                ),
-                const SizedBox(height: 16),
-                UnitConversionEditor(
-                  conversions: _unitConversions,
-                  baseUnit: _baseUnit,
-                  onConversionsChanged: (conversions) {
-                    setState(() => _unitConversions = conversions);
-                  },
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 100),
+          SizedBox(height: ArcoSpacing.m),
+          ...children,
         ],
       ),
     );
   }
 
-  /// 底部操作栏
-  Widget _buildBottomActions(BuildContext context) {
+  Widget _buildBottomActions() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(ArcoSpacing.m),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
       ),
       child: Row(
         children: [
           Expanded(
-            child: TDButton(
-              text: '取消',
-              theme: TDButtonTheme.defaultTheme,
-              size: TDButtonSize.large,
-              onTap: () => Navigator.pop(context),
+            child: ArcoButton(
+              label: '取消',
+              onPressed: () => Navigator.pop(context),
+              type: ArcoButtonType.secondary,
+              size: ArcoButtonSize.large,
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: ArcoSpacing.m),
           Expanded(
-            child: TDButton(
-              text: '保存',
-              theme: TDButtonTheme.primary,
-              size: TDButtonSize.large,
-              onTap: () => _saveProduct(),
+            child: ArcoButton(
+              label: '保存',
+              onPressed: _isLoading ? null : _saveProduct,
+              type: ArcoButtonType.primary,
+              size: ArcoButtonSize.large,
+              loading: _isLoading,
             ),
           ),
         ],
@@ -850,88 +538,29 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
     );
   }
 
-  /// 保存商品
   Future<void> _saveProduct() async {
-    // 验证基础信息
     if (_nameController.text.isEmpty) {
-      TDToast.showFail('请输入商品名称', context: context);
-      setState(() => _currentTab = 0);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('请输入商品名称'), backgroundColor: ArcoColors.danger),
+      );
       return;
-    }
-
-    if (_categoryId == null) {
-      TDToast.showFail('请选择商品分类', context: context);
-      setState(() => _currentTab = 0);
-      return;
-    }
-
-    if (_baseUnit.isEmpty) {
-      TDToast.showFail('请设置基础单位', context: context);
-      setState(() => _currentTab = 0);
-      return;
-    }
-
-    final basePrice = double.tryParse(_priceController.text) ?? 0;
-    if (basePrice <= 0) {
-      TDToast.showFail('请输入售价', context: context);
-      setState(() => _currentTab = 0);
-      return;
-    }
-
-    // 验证多规格SKU价格
-    if (_hasSpec && _generatedSkus.isNotEmpty) {
-      for (final sku in _generatedSkus) {
-        if (sku.price <= 0) {
-          TDToast.showFail('SKU「${sku.specName}」售价未设置', context: context);
-          setState(() => _currentTab = 1);
-          return;
-        }
-      }
     }
 
     setState(() => _isLoading = true);
-
+    
     try {
-      final baseCostPrice = double.tryParse(_costPriceController.text) ?? 0;
-      
-      // 构建商品数据（TODO: 后续调用API保存）
-      final product = Product(
-        id: _productId ?? 'prod_${DateTime.now().millisecondsSinceEpoch}',
-        name: _nameController.text,
-        categoryId: _categoryId!,
-        brand: _brandController.text.isNotEmpty ? _brandController.text : null,
-        description: _descriptionController.text.isNotEmpty ? _descriptionController.text : null,
-        unitId: 'unit_base',
-        price: basePrice,
-        costPrice: baseCostPrice,
-        barCode: _barCodeController.text.isNotEmpty ? _barCodeController.text : null,
-        enabled: true,
-        hasSpec: _hasSpec,
-        skus: _hasSpec ? _generatedSkus : null,
-        units: _unitConversions.isNotEmpty 
-          ? [
-            Unit(id: 'unit_base', name: _baseUnit, ratio: 1.0, baseUnitId: 'unit_base'),
-            ..._unitConversions.map((conv) => Unit(
-              id: 'unit_${conv.targetUnit}',
-              name: conv.targetUnit,
-              ratio: conv.conversionRate,
-              baseUnitId: 'unit_base',
-            )),
-          ]
-          : null,
-        createTime: DateTime.now(),
-      );
-      
-      // TODO: 实现API保存接口调用
-      // await dataService.saveProduct(product);
-      // print('Product saved: ${product.id}');
+      await Future.delayed(Duration(seconds: 1)); // 模拟API调用
       
       setState(() => _isLoading = false);
-      TDToast.showSuccess('保存成功', context: context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('保存成功'), backgroundColor: ArcoColors.success),
+      );
       Navigator.pop(context, true);
     } catch (e) {
       setState(() => _isLoading = false);
-      TDToast.showFail('保存失败：$e', context: context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('保存失败：$e'), backgroundColor: ArcoColors.danger),
+      );
     }
   }
 }
