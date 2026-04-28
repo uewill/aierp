@@ -9,9 +9,28 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # 网络
+  # HTTP 请求
+  dio: ^5.4.0
   http: ^1.2.0
   
+  # 状态管理
+  provider: ^6.1.1
+  
+  # UI 组件库 - TDesign
+  tdesign_flutter: ^0.1.2
+  
+  # 路由
+  go_router: ^13.0.0
+  
+  # 本地存储
+  shared_preferences: ^2.2.2
+  
+  # 对象比较
+  equatable: ^2.0.8
+
+  # Web 支持
+  url_launcher: ^6.2.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -22,4 +41,3 @@ flutter:
   
   assets:
     - assets/images/
-  

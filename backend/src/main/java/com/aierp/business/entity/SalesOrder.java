@@ -1,6 +1,7 @@
 package com.aierp.business.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,6 +35,10 @@ public class SalesOrder {
     private LocalDateTime updateTime;
     private Integer deleted;
     
+    /**
+     * 销售单明细（非数据库字段）
+     */
+    @TableField(exist = false)
     private List<SalesOrderDetail> details;
     
     // Getter/Setter

@@ -62,18 +62,29 @@ public class SalesOrderService {
     public SalesOrder create(SalesOrder order) {
         order.setTenantId(TenantContext.getTenantId());
         order.setCompanyId(TenantContext.getCompanyId());
-        order.setOrderNo(generateOrderNo());
+        
+        // 如果没有订单号，自动生成
+        if (order.getOrderNo() == null || order.getOrderNo().isEmpty()) {
+            order.setOrderNo(generateOrderNo());
+        }
+        
         order.setOrderDate(LocalDate.now());
-        order.setStatus("DRAFT");
+        if (order.getStatus() == null || order.getStatus().isEmpty()) {
+            order.setStatus("DRAFT");
+        }
         order.setOperatorId(TenantContext.getUserId());
         
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        for (SalesOrderDetail detail : order.getDetails()) {
-            detail.setTenantId(TenantContext.getTenantId());
-            detail.setOrderId(order.getId());
-            BigDecimal amount = detail.getQuantity().multiply(detail.getPrice());
-            detail.setAmount(amount);
-            totalAmount = totalAmount.add(amount);
+        // 计算总金额（如果有明细）
+        BigDecimal totalAmount = order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO;
+        
+        if (order.getDetails() != null && !order.getDetails().isEmpty()) {
+            for (SalesOrderDetail detail : order.getDetails()) {
+                detail.setTenantId(TenantContext.getTenantId());
+                detail.setOrderId(order.getId());
+                BigDecimal amount = detail.getQuantity().multiply(detail.getPrice());
+                detail.setAmount(amount);
+                totalAmount = totalAmount.add(amount);
+            }
         }
         
         order.setTotalAmount(totalAmount);

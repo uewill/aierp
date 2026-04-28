@@ -4,9 +4,11 @@ import com.aierp.business.entity.*;
 import com.aierp.business.repository.*;
 import com.aierp.business.service.*;
 import com.aierp.common.dto.*;
+import com.aierp.common.util.JwtUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +27,9 @@ public class BusinessController {
     private final PartnerRepository partnerRepository;
     private final WarehouseRepository warehouseRepository;
     private final SalesOrderService salesOrderService;
+    private final PurchaseOrderService purchaseOrderService;
+    private final InventoryService inventoryService;
+    private final JwtUtil jwtUtil;
     
     // ========== 商品管理 ==========
     
@@ -38,10 +43,49 @@ public class BusinessController {
     
     @Operation(summary = "新增商品")
     @PostMapping("/product")
-    public ApiResponse<Product> createProduct(@RequestBody Product product) {
-        // TODO: 设置租户ID、生成编码
+    public ApiResponse<Product> createProduct(
+            @RequestBody Product product,
+            HttpServletRequest request) {
+        
+        // 从Token获取用户信息
+        String token = extractToken(request);
+        if (token != null) {
+            Long tenantId = jwtUtil.getTenantId(token);
+            Long companyId = jwtUtil.getCompanyId(token);
+            product.setTenantId(tenantId);
+            product.setCompanyId(companyId);
+        }
+        
+        // 自动生成编码（如果未提供）
+        if (product.getCode() == null || product.getCode().isEmpty()) {
+            product.setCode(generateProductCode());
+        }
+        
+        // 设置默认状态
+        if (product.getStatus() == null) {
+            product.setStatus(1);
+        }
+        
         productRepository.insert(product);
         return ApiResponse.success(product);
+    }
+    
+    /**
+     * 从请求中提取Token
+     */
+    private String extractToken(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
+    }
+    
+    /**
+     * 生成商品编码
+     */
+    private String generateProductCode() {
+        return "P" + System.currentTimeMillis();
     }
     
     // ========== 往来单位管理 ==========
@@ -103,5 +147,71 @@ public class BusinessController {
     public ApiResponse<SalesOrder> approveSalesOrder(@PathVariable Long id) {
         SalesOrder order = salesOrderService.approve(id);
         return ApiResponse.success(order);
+    }
+    
+    // ========== 采购单管理 ==========
+    
+    @Operation(summary = "采购单分页查询")
+    @GetMapping("/purchase-order/page")
+    public ApiResponse<PageResponse<PurchaseOrder>> purchaseOrderPage(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword) {
+        Page<PurchaseOrder> page = purchaseOrderService.page(pageNum, pageSize, status, keyword);
+        PageResponse<PurchaseOrder> response = PageResponse.of(
+            page.getRecords(), 
+            page.getTotal(), 
+            pageNum, 
+            pageSize
+        );
+        return ApiResponse.success(response);
+    }
+    
+    @Operation(summary = "创建采购单")
+    @PostMapping("/purchase-order")
+    public ApiResponse<PurchaseOrder> createPurchaseOrder(@RequestBody PurchaseOrder order) {
+        PurchaseOrder created = purchaseOrderService.create(order);
+        return ApiResponse.success(created);
+    }
+    
+    @Operation(summary = "审核采购单")
+    @PostMapping("/purchase-order/{id}/approve")
+    public ApiResponse<PurchaseOrder> approvePurchaseOrder(@PathVariable Long id) {
+        PurchaseOrder order = purchaseOrderService.approve(id);
+        return ApiResponse.success(order);
+    }
+    
+    // ========== 库存管理 ==========
+    
+    @Operation(summary = "库存分页查询")
+    @GetMapping("/inventory/page")
+    public ApiResponse<PageResponse<Inventory>> inventoryPage(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) Long warehouseId,
+            @RequestParam(required = false) String keyword) {
+        Page<Inventory> page = inventoryService.page(pageNum, pageSize, warehouseId, keyword);
+        PageResponse<Inventory> response = PageResponse.of(
+            page.getRecords(), 
+            page.getTotal(), 
+            pageNum, 
+            pageSize
+        );
+        return ApiResponse.success(response);
+    }
+    
+    @Operation(summary = "商品库存列表")
+    @GetMapping("/inventory/product/{productId}")
+    public ApiResponse<List<Inventory>> inventoryByProduct(@PathVariable Long productId) {
+        List<Inventory> list = inventoryService.listByProduct(productId);
+        return ApiResponse.success(list);
+    }
+    
+    @Operation(summary = "仓库库存列表")
+    @GetMapping("/inventory/warehouse/{warehouseId}")
+    public ApiResponse<List<Inventory>> inventoryByWarehouse(@PathVariable Long warehouseId) {
+        List<Inventory> list = inventoryService.listByWarehouse(warehouseId);
+        return ApiResponse.success(list);
     }
 }

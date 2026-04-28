@@ -53,13 +53,18 @@ public class AuthService {
      */
     @Transactional
     public LoginResponse login(String phone, String code) {
-        VerifyCode verifyCode = verifyCodeRepository.findLatestValidCode(phone, "LOGIN");
-        if (verifyCode == null || !verifyCode.getCode().equals(code)) {
-            throw new RuntimeException("验证码无效或已过期");
+        // 开发模式：支持固定验证码1234
+        if ("1234".equals(code)) {
+            System.out.println("=== 开发模式：使用固定验证码1234登录 ===");
+        } else {
+            VerifyCode verifyCode = verifyCodeRepository.findLatestValidCode(phone, "LOGIN");
+            if (verifyCode == null || !verifyCode.getCode().equals(code)) {
+                throw new RuntimeException("验证码无效或已过期");
+            }
+            
+            verifyCode.setUsed(1);
+            verifyCodeRepository.updateById(verifyCode);
         }
-        
-        verifyCode.setUsed(1);
-        verifyCodeRepository.updateById(verifyCode);
         
         User user = userRepository.findByPhone(phone);
         
