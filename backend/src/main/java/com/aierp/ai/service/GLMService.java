@@ -100,6 +100,10 @@ public class GLMService {
         if (orderType != null) {
             sb.append("订单类型：").append(orderType.equals("SALES") ? "销售单" : "采购单").append("\n");
         }
+        sb.append("\n支持识别的额外信息：\n");
+        sb.append("- 批次号（格式：批次/Batch/批号:XXX）\n");
+        sb.append("- 序列号（格式：序列号/SN/串号:XXX）\n");
+        sb.append("- 生产日期/过期日期\n");
         sb.append("请以 JSON 格式返回解析结果。");
         return sb.toString();
     }
@@ -118,7 +122,15 @@ public class GLMService {
 你需要提取以下信息：
 1. 订单类型（orderType）：SALES 或 PURCHASE
 2. 往来单位名称（partnerName）：客户或供应商名称
-3. 商品明细（items）：数组，每个包含 productName、quantity、unit、price
+3. 商品明细（items）：数组，每个包含：
+   - productName: 商品名称
+   - quantity: 数量（数字）
+   - unit: 单位（箱/瓶/件/袋/盒/个/公斤/斤/克/吨）
+   - price: 单价（数字）
+   - batchNo: 批次号（如有）
+   - serialNo: 序列号（如有）
+   - productionDate: 生产日期（如有，格式YYYY-MM-DD）
+   - expiryDate: 过期日期（如有，格式YYYY-MM-DD）
 4. 备注（remark）：如有
 
 返回格式示例：
@@ -126,8 +138,16 @@ public class GLMService {
   "orderType": "SALES",
   "partnerName": "张三",
   "items": [
-    {"productName": "可乐", "quantity": 10, "unit": "箱", "price": 50},
-    {"productName": "矿泉水", "quantity": 5, "unit": "瓶", "price": 3}
+    {
+      "productName": "可乐",
+      "quantity": 10,
+      "unit": "箱",
+      "price": 50,
+      "batchNo": "B20260401",
+      "serialNo": null,
+      "productionDate": null,
+      "expiryDate": "2026-12-31"
+    }
   ],
   "remark": "",
   "confidence": 95
@@ -137,7 +157,8 @@ public class GLMService {
 - 只返回 JSON，不要其他解释
 - 如果无法识别，confidence 设为较低值
 - 数量和价格必须是数字
-- 单位支持：箱、瓶、件、袋、盒、个、公斤、斤、克、吨
+- 批次号格式：批次:XXX、Batch:XXX、批号:XXX
+- 序列号格式：序列号:XXX、SN:XXX、串号:XXX
 """;
     }
 }

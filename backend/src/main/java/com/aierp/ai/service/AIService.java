@@ -219,7 +219,7 @@ public class AIService {
         String[] parts = content.split("[，,;；]");
         
         for (String part : parts) {
-            AIParsedOrderDTO.ParsedItem item = parseItemPart(part);
+            AIParsedOrderDTO.ParsedItem item = parseItemPart(part, content); // 传递完整原文
             if (item != null) {
                 items.add(item);
             }
@@ -228,7 +228,7 @@ public class AIService {
         return items;
     }
     
-    private AIParsedOrderDTO.ParsedItem parseItemPart(String part) {
+    private AIParsedOrderDTO.ParsedItem parseItemPart(String part, String fullContent) {
         // 去除往来单位等无关内容
         if (part.contains("卖给") || part.contains("来自") || part.contains("供应商") || part.contains("客户")) {
             return null;
@@ -265,10 +265,55 @@ public class AIService {
             if (m1.group(5) != null && !m1.group(5).isEmpty()) {
                 item.setPrice(Double.parseDouble(m1.group(5)));
             }
+            
+            // 从完整原文中提取批次号和序列号
+            extractBatchAndSerial(fullContent, item);
+            
             return item;
         }
         
         return null;
+    }
+    
+    /**
+     * 从文本中提取批次号和序列号
+     */
+    private void extractBatchAndSerial(String text, AIParsedOrderDTO.ParsedItem item) {
+        // 提取批次号
+        java.util.regex.Pattern batchPattern = java.util.regex.Pattern.compile(
+            "(批次|Batch|批号)[:：]?\\s*([A-Za-z0-9\\-]+)"
+        );
+        java.util.regex.Matcher batchMatcher = batchPattern.matcher(text);
+        if (batchMatcher.find()) {
+            item.setBatchNo(batchMatcher.group(2));
+        }
+        
+        // 提取序列号
+        java.util.regex.Pattern serialPattern = java.util.regex.Pattern.compile(
+            "(序列号|SN|串号)[:：]?\\s*([A-Za-z0-9\\-]+)"
+        );
+        java.util.regex.Matcher serialMatcher = serialPattern.matcher(text);
+        if (serialMatcher.find()) {
+            item.setSerialNo(serialMatcher.group(2));
+        }
+        
+        // 提取生产日期
+        java.util.regex.Pattern prodDatePattern = java.util.regex.Pattern.compile(
+            "(生产日期|生产)[:：]?\\s*(\\d{4}[\\/\\-]\\d{1,2}[\\/\\-]\\d{1,2})"
+        );
+        java.util.regex.Matcher prodDateMatcher = prodDatePattern.matcher(text);
+        if (prodDateMatcher.find()) {
+            item.setProductionDate(prodDateMatcher.group(2));
+        }
+        
+        // 提取过期日期
+        java.util.regex.Pattern expDatePattern = java.util.regex.Pattern.compile(
+            "(过期日期|到期|保质期)[:：]?\\s*(\\d{4}[\\/\\-]\\d{1,2}[\\/\\-]\\d{1,2})"
+        );
+        java.util.regex.Matcher expDateMatcher = expDatePattern.matcher(text);
+        if (expDateMatcher.find()) {
+            item.setExpiryDate(expDateMatcher.group(2));
+        }
     }
     
     private String buildReplyMessage(AIParsedOrderDTO parsedOrder) {

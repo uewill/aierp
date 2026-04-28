@@ -16,7 +16,6 @@ public class AIParsedOrderDTO {
     private Double confidence;
     private String parseMessage;
     
-    // Getter/Setter
     public String getOrderType() { return orderType; }
     public void setOrderType(String orderType) { this.orderType = orderType; }
     
@@ -48,6 +47,12 @@ public class AIParsedOrderDTO {
         private String unit;
         private Double price;
         
+        // 扩展字段：批次和序列号
+        private String batchNo;      // 批次号
+        private String serialNo;     // 序列号
+        private String productionDate; // 生产日期
+        private String expiryDate;   // 过期日期
+        
         public String getProductName() { return productName; }
         public void setProductName(String productName) { this.productName = productName; }
         
@@ -62,5 +67,17 @@ public class AIParsedOrderDTO {
         
         public Double getPrice() { return price; }
         public void setPrice(Double price) { this.price = price; }
+        
+        public String getBatchNo() { return batchNo; }
+        public void setBatchNo(String batchNo) { this.batchNo = batchNo; }
+        
+        public String getSerialNo() { return serialNo; }
+        public void setSerialNo(String serialNo) { this.serialNo = serialNo; }
+        
+        public String getProductionDate() { return productionDate; }
+        public void setProductionDate(String productionDate) { this.productionDate = productionDate; }
+        
+        public String getExpiryDate() { return expiryDate; }
+        public void setExpiryDate(String expiryDate) { this.expiryDate = expiryDate; }
     }
 }
