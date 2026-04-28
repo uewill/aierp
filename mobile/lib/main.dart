@@ -54,14 +54,43 @@ class ApiService {
     return jsonDecode(response.body);
   }
   
+  static Future<Map<String, dynamic>> getProductUnits(int productId) async {
+    final response = await http.get(Uri.parse('$baseUrl/product/extend/units/$productId'));
+    return jsonDecode(response.body);
+  }
+  
+  static Future<Map<String, dynamic>> getProductBarcodes(int productId) async {
+    final response = await http.get(Uri.parse('$baseUrl/product/extend/barcodes/$productId'));
+    return jsonDecode(response.body);
+  }
+  
+  static Future<Map<String, dynamic>> getAvailableBatches(int productId, int warehouseId) async {
+    final response = await http.get(Uri.parse('$baseUrl/product/extend/batches/$productId/$warehouseId'));
+    return jsonDecode(response.body);
+  }
+  
+  static Future<Map<String, dynamic>> getCustomerPrice(int customerId, int productId) async {
+    final response = await http.get(Uri.parse('$baseUrl/product/extend/customer-price/$customerId/$productId'));
+    return jsonDecode(response.body);
+  }
+  
+  static Future<Map<String, dynamic>> getProductList() async {
+    final response = await http.get(Uri.parse('$baseUrl/business/product/list'));
+    return jsonDecode(response.body);
+  }
+  
+  static Future<Map<String, dynamic>> getSalesOrderPage(int pageNum, int pageSize) async {
+    final response = await http.get(Uri.parse('$baseUrl/business/sales-order/page?pageNum=$pageNum&pageSize=$pageSize'));
+    return jsonDecode(response.body);
+  }
+  
   static Future<Map<String, dynamic>> confirmDraft(int draftId) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/ai/draft/$draftId/confirm'),
-    );
+    final response = await http.post(Uri.parse('$baseUrl/ai/draft/$draftId/confirm'));
     return jsonDecode(response.body);
   }
 }
 
+/// 登录页
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -141,6 +170,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
+/// 首页
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -154,8 +184,8 @@ class _HomePageState extends State<HomePage> {
   final _pages = [
     const AIInputPage(),
     const SalesOrderListPage(),
-    const PlaceholderPage('商品管理'),
-    const PlaceholderPage('更多'),
+    const ProductListPage(),
+    const MorePage(),
   ];
 
   @override
@@ -176,7 +206,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-/// AI 录入页 - 核心功能
+/// AI 录入页
 class AIInputPage extends StatefulWidget {
   const AIInputPage({super.key});
 
@@ -188,7 +218,6 @@ class _AIInputPageState extends State<AIInputPage> {
   final _inputController = TextEditingController();
   bool _loading = false;
   Map<String, dynamic>? _result;
-  int? _draftId;
 
   Future<void> _parseInput() async {
     if (_inputController.text.isEmpty) {
@@ -200,10 +229,7 @@ class _AIInputPageState extends State<AIInputPage> {
     try {
       final response = await ApiService.aiTextInput(_inputController.text);
       if (response['code'] == 200) {
-        setState(() {
-          _result = response['data'];
-          _draftId = response['data']['draftId'];
-        });
+        setState(() => _result = response['data']);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(response['message'] ?? '解析失败')));
       }
@@ -211,26 +237,6 @@ class _AIInputPageState extends State<AIInputPage> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('网络错误: $e')));
     }
     setState(() => _loading = false);
-  }
-
-  Future<void> _confirmOrder() async {
-    if (_draftId == null) return;
-    
-    try {
-      final response = await ApiService.confirmDraft(_draftId!);
-      if (response['code'] == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('订单已生成！')));
-        setState(() {
-          _result = null;
-          _draftId = null;
-          _inputController.clear();
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(response['message'] ?? '确认失败')));
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('网络错误: $e')));
-    }
   }
 
   @override
@@ -263,7 +269,7 @@ class _AIInputPageState extends State<AIInputPage> {
                     TextField(
                       controller: _inputController,
                       decoration: const InputDecoration(
-                        hintText: '例如：销售可乐10箱@50元，矿泉水5瓶@3元',
+                        hintText: '例如：销售可乐10箱@50元，批次:B20260401',
                         border: OutlineInputBorder(),
                       ),
                       maxLines: 3,
@@ -308,11 +314,13 @@ class _AIInputPageState extends State<AIInputPage> {
                         ListTile(
                           dense: true,
                           leading: const Icon(Icons.inventory_2),
-                          title: Text(item['productName']),
+                          title: Text(item['productName'] ?? ''),
                           subtitle: Text('${item['quantity']} ${item['unit']}'),
                           trailing: item['price'] != null ? Text('¥${item['price']}') : null,
                         ),
                       ),
+                      if (_result!['parsedOrder']['items'][0]['batchNo'] != null)
+                        Text('批次号: ${_result!['parsedOrder']['items'][0]['batchNo']}', style: const TextStyle(color: Colors.purple)),
                       const SizedBox(height: 16),
                       Row(
                         children: [
@@ -325,9 +333,18 @@ class _AIInputPageState extends State<AIInputPage> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: _confirmOrder,
+                              onPressed: () async {
+                                final res = await ApiService.confirmDraft(_result!['draftId']);
+                                if (res['code'] == 200) {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('订单已生成！')));
+                                  setState(() {
+                                    _result = null;
+                                    _inputController.clear();
+                                  });
+                                }
+                              },
                               icon: const Icon(Icons.check),
-                              label: const Text('确认生成订单'),
+                              label: const Text('确认生成'),
                             ),
                           ),
                         ],
@@ -347,9 +364,9 @@ class _AIInputPageState extends State<AIInputPage> {
                   children: [
                     Text('录入示例', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                     SizedBox(height: 8),
-                    Text('• 销售：可乐10箱@50元，矿泉水5瓶@3元'),
-                    Text('• 采购：可乐20箱@45元，来自供应商李四'),
-                    Text('• 卖给张三：可乐5箱单价50元'),
+                    Text('• 销售：可乐10箱@50元'),
+                    Text('• 含批次：可乐10箱@50元，批次:B20260401'),
+                    Text('• 含过期日期：矿泉水5瓶@3元，过期日期:2026-12-31'),
                   ],
                 ),
               ),
@@ -362,59 +379,420 @@ class _AIInputPageState extends State<AIInputPage> {
 }
 
 /// 销售单列表页
-class SalesOrderListPage extends StatelessWidget {
+class SalesOrderListPage extends StatefulWidget {
   const SalesOrderListPage({super.key});
+
+  @override
+  State<SalesOrderListPage> createState() => _SalesOrderListPageState();
+}
+
+class _SalesOrderListPageState extends State<SalesOrderListPage> {
+  List<dynamic> _orders = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    try {
+      final response = await ApiService.getSalesOrderPage(1, 20);
+      if (response['code'] == 200 && response['data']['list'] != null) {
+        setState(() {
+          _orders = response['data']['list'];
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('销售单')),
-      body: ListView(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.receipt, color: Colors.orange),
-            title: const Text('SO202604280001'),
-            subtitle: const Text('可乐10箱@50元 | ¥500'),
-            trailing: const Chip(label: Text('待审核')),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.receipt, color: Colors.green),
-            title: const Text('SO202604280002'),
-            subtitle: const Text('矿泉水100瓶@3元 | ¥300'),
-            trailing: const Chip(label: Text('已通过')),
-            onTap: () {},
-          ),
-        ],
-      ),
+      body: _loading 
+        ? const Center(child: CircularProgressIndicator())
+        : _orders.isEmpty
+          ? const Center(child: Text('暂无销售单'))
+          : ListView.builder(
+              itemCount: _orders.length,
+              itemBuilder: (context, index) {
+                final order = _orders[index];
+                return ListTile(
+                  leading: Icon(Icons.receipt, color: order['status'] == 'APPROVED' ? Colors.green : Colors.orange),
+                  title: Text(order['orderNo'] ?? ''),
+                  subtitle: Text('${order['customerName'] ?? '未知客户'} | ¥${order['totalAmount'] ?? 0}'),
+                  trailing: Chip(label: Text(order['status'] ?? '')),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => OrderDetailPage(order: order)),
+                  ),
+                );
+              },
+            ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // 跳转到 AI 录入页
-          DefaultTabController.of(context).animateTo(0);
-        },
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AIInputPage())),
         child: const Icon(Icons.add),
       ),
     );
   }
 }
 
-class PlaceholderPage extends StatelessWidget {
-  final String title;
-  const PlaceholderPage(this.title, {super.key});
+/// 订单详情页
+class OrderDetailPage extends StatelessWidget {
+  final Map<String, dynamic> order;
+  const OrderDetailPage({super.key, required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    final details = order['details'] as List? ?? [];
+    
+    return Scaffold(
+      appBar: AppBar(title: Text(order['orderNo'] ?? '订单详情')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('基本信息', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    Text('客户: ${order['customerName'] ?? ''}'),
+                    Text('状态: ${order['status'] ?? ''}'),
+                    Text('日期: ${order['orderDate'] ?? ''}'),
+                    if (order['aiSource'] != null)
+                      Text('AI来源: ${order['aiSource']}', style: const TextStyle(color: Colors.purple)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('商品明细', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    ...details.map((d) => ListTile(
+                      dense: true,
+                      title: Text(d['productName'] ?? ''),
+                      subtitle: Text('${d['quantity']} ${d['unit']} × ¥${d['price'] ?? 0}'),
+                      trailing: Text('¥${d['amount'] ?? 0}'),
+                      isThreeLine: d['batchNo'] != null,
+                      onTap: () {
+                        if (d['batchNo'] != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('批次号: ${d['batchNo']}')),
+                          );
+                        }
+                      },
+                    )),
+                    const Divider(),
+                    Text('合计: ¥${order['totalAmount'] ?? 0}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 商品列表页
+class ProductListPage extends StatefulWidget {
+  const ProductListPage({super.key});
+
+  @override
+  State<ProductListPage> createState() => _ProductListPageState();
+}
+
+class _ProductListPageState extends State<ProductListPage> {
+  List<dynamic> _products = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final response = await ApiService.getProductList();
+      if (response['code'] == 200) {
+        setState(() {
+          _products = response['data'] ?? [];
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.construction, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text('$title 功能开发中...', style: const TextStyle(color: Colors.grey)),
-          ],
-        ),
+      appBar: AppBar(title: const Text('商品管理')),
+      body: _loading 
+        ? const Center(child: CircularProgressIndicator())
+        : _products.isEmpty
+          ? const Center(child: Text('暂无商品'))
+          : ListView.builder(
+              itemCount: _products.length,
+              itemBuilder: (context, index) {
+                final p = _products[index];
+                return ListTile(
+                  leading: const Icon(Icons.inventory_2),
+                  title: Text(p['name'] ?? ''),
+                  subtitle: Text('编码: ${p['code'] ?? ''} | ${p['unit'] ?? ''}'),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('¥${p['salePrice'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      if (p['enableBatch'] == 1)
+                        const Icon(Icons.calendar_today, size: 16, color: Colors.purple),
+                    ],
+                  ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ProductDetailPage(product: p)),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+
+/// 商品详情页（含批次、单位、条码）
+class ProductDetailPage extends StatefulWidget {
+  final Map<String, dynamic> product;
+  const ProductDetailPage({super.key, required this.product});
+
+  @override
+  State<ProductDetailPage> createState() => _ProductDetailPageState();
+}
+
+class _ProductDetailPageState extends State<ProductDetailPage> {
+  List<dynamic> _units = [];
+  List<dynamic> _barcodes = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExtensions();
+  }
+
+  Future<void> _loadExtensions() async {
+    final productId = widget.product['id'];
+    try {
+      final unitsRes = await ApiService.getProductUnits(productId);
+      final barcodesRes = await ApiService.getProductBarcodes(productId);
+      setState(() {
+        _units = unitsRes['data'] ?? [];
+        _barcodes = barcodesRes['data'] ?? [];
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.product;
+    
+    return Scaffold(
+      appBar: AppBar(title: Text(p['name'] ?? '商品详情')),
+      body: _loading 
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 基本信息
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('基本信息', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        Text('编码: ${p['code'] ?? ''}'),
+                        Text('条码: ${p['barcode'] ?? ''}'),
+                        Text('单位: ${p['unit'] ?? ''}'),
+                        Text('销售价: ¥${p['salePrice'] ?? 0}'),
+                        Text('进货价: ¥${p['purchasePrice'] ?? 0}'),
+                        Text('库存: ${p['stock'] ?? 0}'),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                // 启用功能
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('启用功能', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Icon(p['enableMultiUnit'] == 1 ? Icons.check_circle : Icons.cancel, 
+                                 color: p['enableMultiUnit'] == 1 ? Colors.green : Colors.grey),
+                            const SizedBox(width: 8),
+                            const Text('多单位'),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Icon(p['enableBatch'] == 1 ? Icons.check_circle : Icons.cancel,
+                                 color: p['enableBatch'] == 1 ? Colors.green : Colors.grey),
+                            const SizedBox(width: 8),
+                            const Text('批次管理'),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Icon(p['enableExpiry'] == 1 ? Icons.check_circle : Icons.cancel,
+                                 color: p['enableExpiry'] == 1 ? Colors.green : Colors.grey),
+                            const SizedBox(width: 8),
+                            const Text('保质期'),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Icon(p['enableSerial'] == 1 ? Icons.check_circle : Icons.cancel,
+                                 color: p['enableSerial'] == 1 ? Colors.green : Colors.grey),
+                            const SizedBox(width: 8),
+                            const Text('序列号'),
+                          ],
+                        ),
+                        if (p['shelfLifeDays'] != null)
+                          Text('保质期天数: ${p['shelfLifeDays']}天'),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                // 多单位
+                if (_units.isNotEmpty)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('单位换算', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 12),
+                          ..._units.map((u) => ListTile(
+                            dense: true,
+                            title: Text(u['unitName'] ?? ''),
+                            subtitle: Text('换算比: ${u['ratio'] ?? 1}'),
+                            trailing: Text('¥${u['salePrice'] ?? 0}'),
+                          )),
+                        ],
+                      ),
+                    ),
+                  ),
+                
+                // 条码列表
+                if (_barcodes.isNotEmpty)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('条码列表', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 12),
+                          ..._barcodes.map((b) => ListTile(
+                            dense: true,
+                            leading: Icon(b['isMain'] == 1 ? Icons.star : Icons.qr_code),
+                            title: Text(b['barcode'] ?? ''),
+                            subtitle: Text('${b['unitName'] ?? ''} | ¥${b['salePrice'] ?? 0}'),
+                          )),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+    );
+  }
+}
+
+/// 更多页面
+class MorePage extends StatelessWidget {
+  const MorePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('更多')),
+      body: ListView(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.people),
+            title: const Text('客户管理'),
+            subtitle: const Text('客户价格本、信用额度'),
+            onTap: () {},
+          ),
+          ListTile(
+            leading: const Icon(Icons.business),
+            title: const Text('供应商管理'),
+            onTap: () {},
+          ),
+          ListTile(
+            leading: const Icon(Icons.store),
+            title: const Text('仓库管理'),
+            onTap: () {},
+          ),
+          ListTile(
+            leading: const Icon(Icons.inventory),
+            title: const Text('库存查询'),
+            subtitle: const Text('批次库存、过期预警'),
+            onTap: () {},
+          ),
+          ListTile(
+            leading: const Icon(Icons.qr_code),
+            title: const Text('条码管理'),
+            subtitle: const Text('扫码录入、条码打印'),
+            onTap: () {},
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('系统设置'),
+            onTap: () {},
+          ),
+          ListTile(
+            leading: const Icon(Icons.info),
+            title: const Text('API地址'),
+            subtitle: const Text('http://42.193.169.78:8090'),
+            onTap: () {},
+          ),
+        ],
       ),
     );
   }
