@@ -100,7 +100,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController(text: '18190780080');
-  final _codeController = TextEditingController(text: '123456');
+  final _codeController = TextEditingController(text: '1234');
   bool _loading = false;
 
   Future<void> _login() async {
@@ -151,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 16),
-            const Text('开发模式验证码: 123456', style: TextStyle(color: Colors.orange, fontSize: 12)),
+            const Text('开发模式验证码: 1234', style: TextStyle(color: Colors.orange, fontSize: 12)),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
