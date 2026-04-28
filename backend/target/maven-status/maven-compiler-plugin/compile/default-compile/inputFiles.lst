@@ -23,6 +23,7 @@
 /myclaw/aierp/backend/src/main/java/com/aierp/auth/service/AuthService.java
 /myclaw/aierp/backend/src/main/java/com/aierp/business/entity/Warehouse.java
 /myclaw/aierp/backend/src/main/java/com/aierp/ai/entity/AIOrderDraft.java
+/myclaw/aierp/backend/src/main/java/com/aierp/ai/service/VoiceService.java
 /myclaw/aierp/backend/src/main/java/com/aierp/ai/controller/AIController.java
 /myclaw/aierp/backend/src/main/java/com/aierp/business/repository/SalesOrderDetailRepository.java
 /myclaw/aierp/backend/src/main/java/com/aierp/business/repository/SalesOrderRepository.java

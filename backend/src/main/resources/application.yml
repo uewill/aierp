@@ -38,9 +38,17 @@ jwt:
 # AI配置（后续对接AI服务）
 ai:
   enabled: false  # 设为 true 并配置 zhipu-api-key 启用 GLM-4
-  zhipu-api-key: ""  # 智谱 API Key
+  zhipu-api-key: ""
   zhipu-api-url: https://open.bigmodel.cn/api/paas/v4/chat/completions
-  model: glm-4-flash  # 模型：glm-4 / glm-4-flash / glm-4-plus
+  model: glm-4-flash
+  
+  # 语音识别配置
+  voice:
+    enabled: false  # 设为 true 启用语音识别
+    provider: local # tencent/aliyun/local
+    tencent-app-id: ""
+    tencent-secret-id: ""
+    tencent-secret-key: ""
 
 # Knife4j API文档
 knife4j:
