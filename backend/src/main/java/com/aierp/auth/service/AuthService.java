@@ -7,6 +7,7 @@ import com.aierp.auth.entity.VerifyCode;
 import com.aierp.auth.repository.UserRepository;
 import com.aierp.auth.repository.VerifyCodeRepository;
 import com.aierp.common.util.JwtUtil;
+import com.aierp.common.util.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -136,6 +137,32 @@ public class AuthService {
         response.setCompanyId(companyId);
         response.setPhone(user.getPhone());
         response.setNickname(user.getNickname());
+        response.setRole(user.getRole());
+        
+        return response;
+    }
+    
+    /**
+     * 获取当前登录用户信息（从JWT Token）
+     */
+    public LoginResponse getCurrentUserInfo() {
+        Long userId = TenantContext.getUserId();
+        if (userId == null) {
+            throw new RuntimeException("未登录");
+        }
+        
+        User user = userRepository.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        
+        LoginResponse response = new LoginResponse();
+        response.setUserId(user.getId());
+        response.setTenantId(user.getTenantId());
+        response.setCompanyId(user.getCompanyId());
+        response.setPhone(user.getPhone());
+        response.setNickname(user.getNickname());
+        response.setAvatar(user.getAvatar());
         response.setRole(user.getRole());
         
         return response;

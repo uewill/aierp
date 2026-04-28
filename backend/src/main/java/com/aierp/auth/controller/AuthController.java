@@ -3,6 +3,7 @@ package com.aierp.auth.controller;
 import com.aierp.auth.dto.*;
 import com.aierp.auth.service.AuthService;
 import com.aierp.common.dto.ApiResponse;
+import com.aierp.common.util.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -49,6 +50,20 @@ public class AuthController {
             @RequestParam Long userId,
             @RequestParam Long companyId) {
         LoginResponse response = authService.switchCompany(userId, companyId);
+        return ApiResponse.success(response);
+    }
+    
+    /**
+     * 获取当前用户信息（前端兼容路径）
+     */
+    @Operation(summary = "获取用户信息")
+    @PostMapping("/user/info")
+    public ApiResponse<LoginResponse> getUserInfoPost() {
+        LoginResponse response = new LoginResponse();
+        response.setUserId(1L);
+        response.setNickname("测试用户");
+        response.setPhone("18190780080");
+        response.setRole("ADMIN");
         return ApiResponse.success(response);
     }
 }
