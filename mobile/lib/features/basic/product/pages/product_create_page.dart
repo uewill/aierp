@@ -1,6 +1,6 @@
 import 'package:aierp_mobile/arco_design/arco_design.dart';
-/// 商品创建/编辑页面 - 重构版
-/// 使用 Arco Design Mobile 规范
+/// 商品创建/编辑页面 - 使用 ArcoCell 样式
+/// 白色背景、左右布局、右侧箭头、底部边框分隔
 
 import 'package:flutter/material.dart';
 
@@ -142,54 +142,47 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 商品信息卡片
-          _buildCard(
-            title: '商品信息',
-            icon: Icons.inventory_2,
+          Text('商品信息', style: ArcoTypography.title2),
+          SizedBox(height: ArcoSpacing.s),
+          ArcoCellGroup(
             children: [
-              ArcoInputItem(
+              ArcoCellInput(
                 label: '商品名称',
                 hintText: '请输入商品名称',
                 controller: _nameController,
-                showClear: true,
+                showDivider: true,
               ),
-              SizedBox(height: ArcoSpacing.s),
               
-              ArcoPicker<String>(
-                title: '商品分类',
-                items: _categories,
+              ArcoCell(
+                label: '商品分类',
                 value: _categoryId != null ? _categories[int.tryParse(_categoryId!) ?? 0] : null,
-                itemLabel: (c) => c,
                 placeholder: '请选择分类',
-                prefixIcon: Icon(Icons.category_outlined, color: ArcoColors.textSecondary, size: 18),
-                onSelected: (category) {
-                  if (category != null) {
-                    setState(() => _categoryId = _categories.indexOf(category).toString());
-                  }
-                },
+                prefixIcon: Icon(Icons.category_outlined, color: ArcoColors.primary, size: 18),
+                onTap: () => _showCategoryPicker(),
               ),
-              SizedBox(height: ArcoSpacing.s),
               
-              ArcoInputItem(
+              ArcoCellInput(
                 label: '品牌',
                 hintText: '可选',
                 controller: _brandController,
-                showClear: true,
+                showDivider: true,
               ),
-              SizedBox(height: ArcoSpacing.s),
               
-              ArcoInputItem(
+              ArcoCellInput(
                 label: '条码',
                 hintText: '可选',
                 controller: _barCodeController,
-                showClear: true,
+                showDivider: true,
               ),
-              SizedBox(height: ArcoSpacing.s),
               
-              ArcoTextArea(
+              ArcoCell(
                 label: '商品描述',
-                hintText: '可选',
-                controller: _descriptionController,
-                maxLines: 2,
+                value: _descriptionController.text.isEmpty ? null : _descriptionController.text,
+                placeholder: '可选',
+                prefixIcon: Icon(Icons.description_outlined, color: ArcoColors.primary, size: 18),
+                onTap: () => _showDescriptionDialog(),
+                showArrow: false,
+                showDivider: false,
               ),
             ],
           ),
@@ -197,25 +190,26 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
           SizedBox(height: ArcoSpacing.m),
           
           // 价格卡片
-          _buildCard(
-            title: '价格信息',
-            icon: Icons.payments_outlined,
+          Text('价格信息', style: ArcoTypography.title2),
+          SizedBox(height: ArcoSpacing.s),
+          ArcoCellGroup(
             children: [
-              ArcoInputItem(
+              ArcoCellInput(
                 label: '售价',
                 hintText: '0.00',
                 controller: _priceController,
                 keyboardType: TextInputType.number,
-                prefixIcon: Text('¥', style: TextStyle(color: ArcoColors.textSecondary)),
+                prefixIcon: Text('￥', style: TextStyle(color: ArcoColors.primary, fontSize: 16)),
+                showDivider: true,
               ),
-              SizedBox(height: ArcoSpacing.s),
               
-              ArcoInputItem(
+              ArcoCellInput(
                 label: '成本价',
                 hintText: '0.00',
                 controller: _costPriceController,
                 keyboardType: TextInputType.number,
-                prefixIcon: Text('¥', style: TextStyle(color: ArcoColors.textSecondary)),
+                prefixIcon: Text('￥', style: TextStyle(color: ArcoColors.primary, fontSize: 16)),
+                showDivider: false,
               ),
             ],
           ),
@@ -223,80 +217,92 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
           SizedBox(height: ArcoSpacing.m),
           
           // 单位设置卡片
-          _buildCard(
-            title: '单位设置',
-            icon: Icons.straighten,
+          Text('单位设置', style: ArcoTypography.title2),
+          SizedBox(height: ArcoSpacing.s),
+          ArcoCellGroup(
             children: [
-              ArcoPicker<String>(
-                title: '基础单位',
-                items: _commonUnits,
+              ArcoCell(
+                label: '基础单位',
                 value: _baseUnit,
-                itemLabel: (u) => u,
-                onSelected: (unit) {
-                  if (unit != null) setState(() => _baseUnit = unit);
-                },
+                prefixIcon: Icon(Icons.straighten, color: ArcoColors.primary, size: 18),
+                onTap: () => _showBaseUnitPicker(),
               ),
-              SizedBox(height: ArcoSpacing.m),
               
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('启用多单位', style: ArcoTypography.body2),
-                  Switch(
-                    value: _enableMultiUnit,
-                    onChanged: (v) => setState(() => _enableMultiUnit = v),
-                    activeColor: ArcoColors.primary,
-                  ),
-                ],
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: ArcoSpacing.m,
+                  vertical: ArcoSpacing.m,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('启用多单位', style: ArcoTypography.body2),
+                    Switch(
+                      value: _enableMultiUnit,
+                      onChanged: (v) => setState(() => _enableMultiUnit = v),
+                      activeColor: ArcoColors.primary,
+                    ),
+                  ],
+                ),
               ),
               
               if (_enableMultiUnit) ...[
-                SizedBox(height: ArcoSpacing.m),
-                Divider(),
-                SizedBox(height: ArcoSpacing.s),
-                
+                Divider(height: 1, thickness: 1, color: ArcoColors.border),
                 ..._units.asMap().entries.map((entry) {
                   final index = entry.key;
                   final unit = entry.value;
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: ArcoSpacing.s),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: ArcoInputItem(
-                            label: '单位',
-                            hintText: '如：箱',
-                            controller: TextEditingController(text: unit['name']),
-                            onChanged: (v) => setState(() => _units[index]['name'] = v),
-                          ),
+                  return Column(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: ArcoSpacing.m,
+                          vertical: ArcoSpacing.s,
                         ),
-                        SizedBox(width: ArcoSpacing.s),
-                        Expanded(
-                          flex: 1,
-                          child: ArcoInputItem(
-                            label: '换算率',
-                            hintText: '1',
-                            keyboardType: TextInputType.number,
-                            controller: TextEditingController(text: unit['ratio'].toString()),
-                            onChanged: (v) => setState(() => _units[index]['ratio'] = double.tryParse(v) ?? 1.0),
-                          ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: ArcoCellInput(
+                                label: '单位',
+                                hintText: '如：箱',
+                                controller: TextEditingController(text: unit['name']),
+                                onChanged: (v) => setState(() => _units[index]['name'] = v),
+                                showDivider: false,
+                              ),
+                            ),
+                            SizedBox(width: ArcoSpacing.s),
+                            Expanded(
+                              flex: 1,
+                              child: ArcoCellInput(
+                                label: '换算率',
+                                hintText: '1',
+                                keyboardType: TextInputType.number,
+                                controller: TextEditingController(text: unit['ratio'].toString()),
+                                onChanged: (v) => setState(() => _units[index]['ratio'] = double.tryParse(v) ?? 1.0),
+                                showDivider: false,
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.delete, color: ArcoColors.danger, size: 20),
+                              onPressed: () => setState(() => _units.removeAt(index)),
+                            ),
+                          ],
                         ),
-                        IconButton(
-                          icon: Icon(Icons.delete, color: ArcoColors.danger, size: 20),
-                          onPressed: () => setState(() => _units.removeAt(index)),
-                        ),
-                      ],
-                    ),
+                      ),
+                      if (index < _units.length - 1)
+                        Divider(height: 1, thickness: 1, color: ArcoColors.border),
+                    ],
                   );
                 }),
                 
-                SizedBox(height: ArcoSpacing.s),
-                ArcoButton(
-                  label: '+ 添加单位',
-                  type: ArcoButtonType.secondary,
-                  size: ArcoButtonSize.small,
-                  onPressed: () => setState(() => _units.add({'name': '', 'ratio': 1.0})),
+                Container(
+                  padding: EdgeInsets.all(ArcoSpacing.m),
+                  child: ArcoButton(
+                    label: '+ 添加单位',
+                    type: ArcoButtonType.secondary,
+                    size: ArcoButtonSize.small,
+                    onPressed: () => setState(() => _units.add({'name': '', 'ratio': 1.0})),
+                  ),
                 ),
               ],
             ],
@@ -314,93 +320,96 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCard(
-            title: '规格设置',
-            icon: Icons.view_module,
+          Text('规格设置', style: ArcoTypography.title2),
+          SizedBox(height: ArcoSpacing.s),
+          ArcoCellGroup(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('多规格商品', style: ArcoTypography.title2),
-                      SizedBox(height: 4),
-                      Text(
-                        _hasSpec ? '已启用多规格' : '单规格商品',
-                        style: ArcoTypography.body3.copyWith(color: ArcoColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                  Switch(
-                    value: _hasSpec,
-                    onChanged: (v) => setState(() => _hasSpec = v),
-                    activeColor: ArcoColors.primary,
-                  ),
-                ],
+              Container(
+                padding: EdgeInsets.all(ArcoSpacing.m),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('多规格商品', style: ArcoTypography.title2),
+                        SizedBox(height: 4),
+                        Text(
+                          _hasSpec ? '已启用多规格' : '单规格商品',
+                          style: ArcoTypography.body3.copyWith(color: ArcoColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                    Switch(
+                      value: _hasSpec,
+                      onChanged: (v) => setState(() => _hasSpec = v),
+                      activeColor: ArcoColors.primary,
+                    ),
+                  ],
+                ),
               ),
               
               if (_hasSpec) ...[
-                SizedBox(height: ArcoSpacing.m),
-                Divider(),
-                SizedBox(height: ArcoSpacing.s),
-                
+                Divider(height: 1, thickness: 1, color: ArcoColors.border),
                 ..._specList.asMap().entries.map((entry) {
                   final index = entry.key;
                   final spec = entry.value;
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: ArcoSpacing.m),
-                    child: Container(
-                      padding: EdgeInsets.all(ArcoSpacing.s),
-                      decoration: BoxDecoration(
-                        color: ArcoColors.fill1,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ArcoInputItem(
-                                  label: '规格名',
-                                  hintText: '如：颜色',
-                                  controller: TextEditingController(text: spec['name']),
-                                  onChanged: (v) => setState(() => _specList[index]['name'] = v),
+                  return Column(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(ArcoSpacing.m),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ArcoCellInput(
+                                    label: '规格名',
+                                    hintText: '如：颜色',
+                                    controller: TextEditingController(text: spec['name']),
+                                    onChanged: (v) => setState(() => _specList[index]['name'] = v),
+                                    showDivider: false,
+                                  ),
                                 ),
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.delete, color: ArcoColors.danger, size: 20),
-                                onPressed: () => setState(() => _specList.removeAt(index)),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: ArcoSpacing.s),
-                          
-                          Text('规格值（用逗号分隔）', style: ArcoTypography.body3),
-                          SizedBox(height: ArcoSpacing.xs),
-                          ArcoInputItem(
-                            label: '',
-                            hintText: '如：红色,蓝色,绿色',
-                            controller: TextEditingController(text: (spec['values'] as List?)?.join(',') ?? ''),
-                            onChanged: (v) {
-                              setState(() {
-                                _specList[index]['values'] = v.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-                              });
-                            },
-                          ),
-                        ],
+                                IconButton(
+                                  icon: Icon(Icons.delete, color: ArcoColors.danger, size: 20),
+                                  onPressed: () => setState(() => _specList.removeAt(index)),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: ArcoSpacing.s),
+                            
+                            Text('规格值（用逗号分隔）', style: ArcoTypography.body3),
+                            SizedBox(height: ArcoSpacing.xs),
+                            ArcoCellInput(
+                              label: '',
+                              hintText: '如：红色,蓝色,绿色',
+                              controller: TextEditingController(text: (spec['values'] as List?)?.join(',') ?? ''),
+                              onChanged: (v) {
+                                setState(() {
+                                  _specList[index]['values'] = v.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+                                });
+                              },
+                              showDivider: false,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                      if (index < _specList.length - 1)
+                        Divider(height: 1, thickness: 1, color: ArcoColors.border),
+                    ],
                   );
                 }),
                 
-                SizedBox(height: ArcoSpacing.s),
-                ArcoButton(
-                  label: '+ 添加规格',
-                  type: ArcoButtonType.secondary,
-                  size: ArcoButtonSize.small,
-                  onPressed: () => setState(() => _specList.add({'name': '', 'values': []})),
+                Container(
+                  padding: EdgeInsets.all(ArcoSpacing.m),
+                  child: ArcoButton(
+                    label: '+ 添加规格',
+                    type: ArcoButtonType.secondary,
+                    size: ArcoButtonSize.small,
+                    onPressed: () => setState(() => _specList.add({'name': '', 'values': []})),
+                  ),
                 ),
               ],
             ],
@@ -418,89 +427,77 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCard(
-            title: '批次管理',
-            icon: Icons.calendar_today,
+          Text('批次管理', style: ArcoTypography.title2),
+          SizedBox(height: ArcoSpacing.s),
+          ArcoCellGroup(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('启用批次', style: ArcoTypography.body2),
-                  Switch(
-                    value: _enableBatch,
-                    onChanged: (v) => setState(() => _enableBatch = v),
-                    activeColor: ArcoColors.primary,
-                  ),
-                ],
-              ),
-              SizedBox(height: ArcoSpacing.xs),
-              Text(
-                '启用后可对商品进行批次追踪',
-                style: ArcoTypography.body3.copyWith(color: ArcoColors.textSecondary),
+              Container(
+                padding: EdgeInsets.all(ArcoSpacing.m),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('启用批次', style: ArcoTypography.body2),
+                        Switch(
+                          value: _enableBatch,
+                          onChanged: (v) => setState(() => _enableBatch = v),
+                          activeColor: ArcoColors.primary,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: ArcoSpacing.xs),
+                    Text(
+                      '启用后可对商品进行批次追踪',
+                      style: ArcoTypography.body3.copyWith(color: ArcoColors.textSecondary),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
           
           SizedBox(height: ArcoSpacing.m),
           
-          _buildCard(
-            title: '保质期设置',
-            icon: Icons.access_time,
+          Text('保质期设置', style: ArcoTypography.title2),
+          SizedBox(height: ArcoSpacing.s),
+          ArcoCellGroup(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('启用保质期', style: ArcoTypography.body2),
-                  Switch(
-                    value: _enableExpiry,
-                    onChanged: (v) => setState(() => _enableExpiry = v),
-                    activeColor: ArcoColors.primary,
-                  ),
-                ],
-              ),
-              
-              if (_enableExpiry) ...[
-                SizedBox(height: ArcoSpacing.m),
-                ArcoInputItem(
-                  label: '保质期天数',
-                  hintText: '如：365',
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => setState(() => _shelfLifeDays = int.tryParse(v)),
+              Container(
+                padding: EdgeInsets.all(ArcoSpacing.m),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('启用保质期', style: ArcoTypography.body2),
+                        Switch(
+                          value: _enableExpiry,
+                          onChanged: (v) => setState(() => _enableExpiry = v),
+                          activeColor: ArcoColors.primary,
+                        ),
+                      ],
+                    ),
+                    
+                    if (_enableExpiry) ...[
+                      SizedBox(height: ArcoSpacing.m),
+                      ArcoCellInput(
+                        label: '保质期天数',
+                        hintText: '如：365',
+                        keyboardType: TextInputType.number,
+                        onChanged: (v) => setState(() => _shelfLifeDays = int.tryParse(v)),
+                        showDivider: false,
+                      ),
+                    ],
+                  ],
                 ),
-              ],
+              ),
             ],
           ),
           
           SizedBox(height: 100),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCard({
-    required String title,
-    required IconData icon,
-    required List<Widget> children,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8)],
-      ),
-      padding: EdgeInsets.all(ArcoSpacing.m),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: ArcoColors.primary, size: 20),
-              SizedBox(width: ArcoSpacing.s),
-              Text(title, style: ArcoTypography.title2),
-            ],
-          ),
-          SizedBox(height: ArcoSpacing.m),
-          ...children,
         ],
       ),
     );
@@ -532,6 +529,163 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
               size: ArcoButtonSize.large,
               loading: _isLoading,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCategoryPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(ArcoSpacing.m),
+              child: Row(
+                children: [
+                  Text('商品分类', style: ArcoTypography.title2),
+                  Spacer(),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(ctx),
+                    child: Icon(Icons.close, color: ArcoColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, thickness: 1, color: ArcoColors.border),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _categories.length,
+                itemBuilder: (context, index) {
+                  final isSelected = _categoryId == index.toString();
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() => _categoryId = index.toString());
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(ArcoSpacing.m),
+                      child: Row(
+                        children: [
+                          Text(
+                            _categories[index],
+                            style: ArcoTypography.body2.copyWith(
+                              color: isSelected ? ArcoColors.primary : ArcoColors.textPrimary,
+                            ),
+                          ),
+                          Spacer(),
+                          if (isSelected)
+                            Icon(Icons.check, color: ArcoColors.primary, size: 20),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showBaseUnitPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(ArcoSpacing.m),
+              child: Row(
+                children: [
+                  Text('基础单位', style: ArcoTypography.title2),
+                  Spacer(),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(ctx),
+                    child: Icon(Icons.close, color: ArcoColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, thickness: 1, color: ArcoColors.border),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _commonUnits.length,
+                itemBuilder: (context, index) {
+                  final isSelected = _baseUnit == _commonUnits[index];
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() => _baseUnit = _commonUnits[index]);
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(ArcoSpacing.m),
+                      child: Row(
+                        children: [
+                          Text(
+                            _commonUnits[index],
+                            style: ArcoTypography.body2.copyWith(
+                              color: isSelected ? ArcoColors.primary : ArcoColors.textPrimary,
+                            ),
+                          ),
+                          Spacer(),
+                          if (isSelected)
+                            Icon(Icons.check, color: ArcoColors.primary, size: 20),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDescriptionDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('商品描述'),
+        content: TextField(
+          controller: _descriptionController,
+          maxLines: 5,
+          decoration: InputDecoration(
+            hintText: '请输入商品描述',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('取消'),
+          ),
+          ArcoButton(
+            label: '确定',
+            type: ArcoButtonType.primary,
+            onPressed: () {
+              setState(() {});
+              Navigator.pop(ctx);
+            },
           ),
         ],
       ),

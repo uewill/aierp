@@ -12,3 +12,4 @@ export 'components/basic/arco_button.dart';
 // Form Components
 export 'components/form/arco_input_item.dart';
 export 'components/form/arco_picker.dart';
+export 'components/form/arco_cell.dart';
