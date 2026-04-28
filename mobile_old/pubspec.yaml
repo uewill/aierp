@@ -23,3 +23,7 @@ flutter:
   assets:
     - assets/images/
   
+  fonts:
+    - family: TDesignIcon
+      fonts:
+        - asset: assets/fonts/tdesign-icon.ttf
