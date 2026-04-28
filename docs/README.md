@@ -17,10 +17,11 @@
 |------|------|------|
 | 数据库设计 | ✅ | 24张表（多租户+AI模块） |
 | Spring Boot 后端 | ✅ | 8090端口运行中 |
-| 认证 API | ✅ | `/api/auth/send-code` `/api/auth/login` |
+| 认证 API | ✅ | 验证码登录已验证 |
 | AI 文字解析 | ✅ | 商品名正确识别 |
+| AI 语音识别 | ✅ | 接口已实现（腾讯云预留） |
 | 智谱 GLM-4 | ✅ 预留 | 配置启用即可 |
-| Flutter APK | ✅ | **21.1MB 已打包上传** |
+| Flutter APK | ✅ | **21.1MB 已上传** |
 
 ## 📱 Flutter APK 下载
 
@@ -40,26 +41,45 @@ curl -X POST http://localhost:8090/api/auth/send-code \
 # AI 文字解析订单
 curl -X POST http://localhost:8090/api/ai/text-input \
   -H "Content-Type: application/json" \
-  -d '{"content":"销售可乐10箱@50元，矿泉水5瓶@3元"}'
-# 返回: 商品明细正确识别（置信度85%）
+  -d '{"content":"销售可乐10箱@50元"}'
+# 返回: 商品明细正确识别
+
+# AI 语音识别录入（新增）
+curl -X POST http://localhost:8090/api/ai/voice-input \
+  -d "audioUrl=test.mp3"
+# 返回: 识别后自动解析订单
 ```
+
+## 🔧 配置启用 AI 服务
+
+修改 `application.yml`：
+
+```yaml
+ai:
+  # 智谱 GLM-4 文字解析
+  enabled: true
+  zhipu-api-key: "你的智谱API Key"
+  model: glm-4-flash
+  
+  # 语音识别（腾讯云）
+  voice:
+    enabled: true
+    provider: tencent
+    tencent-app-id: "你的AppId"
+    tencent-secret-id: "你的SecretId"
+    tencent-secret-key: "你的SecretKey"
+```
+
+**获取 API Key**：
+- 智谱：https://open.bigmodel.cn
+- 腾讯云语音：https://cloud.tencent.com/product/asr
 
 ## 🗄️ 数据库设计（24张表）
 
 - 系统管理：sys_tenant, sys_user, sys_verify_code, sys_company
 - 基础数据：bas_product, bas_partner, bas_warehouse
 - 业务单据：biz_sales_order, biz_purchase_order
-- AI模块：ai_session, ai_message, ai_order_draft
-
-## 🔧 配置启用智谱 GLM-4
-
-修改 `application.yml`：
-```yaml
-ai:
-  enabled: true
-  zhipu-api-key: "你的智谱API Key"
-  model: glm-4-flash
-```
+- AI模块：ai_session, ai_message, ai_order_draft, ai_voice_record
 
 ---
 
