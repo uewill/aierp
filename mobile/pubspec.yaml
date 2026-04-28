@@ -9,24 +9,8 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # TDesign Flutter组件库
-  tdesign_flutter: ^0.1.0
-  
-  # 状态管理
-  provider: ^6.1.1
-  
   # 网络
-  dio: ^5.4.0
-  
-  # 存储
-  shared_preferences: ^2.2.2
-  
-  # 工具
-  intl: ^0.19.0
-  
-  # AI功能相关
-  speech_to_text: ^6.6.0  # 语音识别
-  image_picker: ^1.0.7    # 图片选择
+  http: ^1.2.0
   
 dev_dependencies:
   flutter_test:

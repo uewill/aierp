@@ -229,22 +229,40 @@ public class AIService {
     }
     
     private AIParsedOrderDTO.ParsedItem parseItemPart(String part) {
+        // 去除往来单位等无关内容
         if (part.contains("卖给") || part.contains("来自") || part.contains("供应商") || part.contains("客户")) {
             return null;
         }
         
+        // 去除常见的动作词前缀
+        String cleaned = part
+            .replace("销售", "")
+            .replace("卖出", "")
+            .replace("采购", "")
+            .replace("进货", "")
+            .replace("购买", "")
+            .trim();
+        
         AIParsedOrderDTO.ParsedItem item = new AIParsedOrderDTO.ParsedItem();
         
+        // 格式1: 商品名+数字+单位+@价格 或 商品名+数字+单位+单价+价格
         java.util.regex.Pattern p1 = java.util.regex.Pattern.compile(
-            "(.+?)(\\d+)(箱|瓶|件|袋|盒|个|公斤|斤|克|吨)(@|单价)?(\\d+\\.?\\d*)?(元)?"
+            "([^\\d]+?)(\\d+)(箱|瓶|件|袋|盒|个|公斤|斤|克|吨)(@|单价)?(\\d+\\.?\\d*)?(元)?"
         );
-        java.util.regex.Matcher m1 = p1.matcher(part);
+        java.util.regex.Matcher m1 = p1.matcher(cleaned);
         
         if (m1.find()) {
-            item.setProductName(m1.group(1).trim());
+            String productName = m1.group(1).trim();
+            // 进一步清理商品名
+            productName = productName
+                .replaceFirst("^(卖给|来自|销售给)", "")
+                .replaceFirst("：$", "")
+                .trim();
+            
+            item.setProductName(productName);
             item.setQuantity(Double.parseDouble(m1.group(2)));
             item.setUnit(m1.group(3));
-            if (m1.group(5) != null) {
+            if (m1.group(5) != null && !m1.group(5).isEmpty()) {
                 item.setPrice(Double.parseDouble(m1.group(5)));
             }
             return item;

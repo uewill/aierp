@@ -1,0 +1,1 @@
+{"inputs":["/myclaw/aierp/mobile/web/*/index.html","/myclaw/aierp/mobile/web/flutter_bootstrap.js","/myclaw/flutter/bin/internal/engine.version"],"outputs":["/myclaw/aierp/mobile/build/web/*/index.html","/myclaw/aierp/mobile/build/web/flutter_bootstrap.js"],"buildKey":"[{\"compileTarget\":\"dart2js\",\"renderer\":\"canvaskit\",\"mainJsPath\":\"main.dart.js\"}]"}
