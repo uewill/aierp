@@ -102,6 +102,38 @@ class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController(text: '18190780080');
   final _codeController = TextEditingController(text: '1234');
   bool _loading = false;
+  bool _sendingCode = false;
+  int _countdown = 0;
+
+  Future<void> _sendCode() async {
+    if (_phoneController.text.length != 11) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入正确的手机号')));
+      return;
+    }
+    
+    setState(() => _sendingCode = true);
+    try {
+      final result = await ApiService.sendCode(_phoneController.text);
+      if (result['code'] == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('验证码已发送')));
+        setState(() => _countdown = 60);
+        _startCountdown();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message'] ?? '发送失败')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('网络错误: $e')));
+    }
+    setState(() => _sendingCode = false);
+  }
+
+  void _startCountdown() {
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 1));
+      setState(() => _countdown--);
+      return _countdown > 0;
+    });
+  }
 
   Future<void> _login() async {
     setState(() => _loading = true);
@@ -141,16 +173,33 @@ class _LoginPageState extends State<LoginPage> {
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _codeController,
-              decoration: const InputDecoration(
-                labelText: '验证码',
-                prefixIcon: Icon(Icons.lock),
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _codeController,
+                    decoration: const InputDecoration(
+                      labelText: '验证码',
+                      prefixIcon: Icon(Icons.lock),
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 100,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _countdown > 0 || _sendingCode ? null : _sendCode,
+                    child: _sendingCode 
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text(_countdown > 0 ? '${_countdown}s' : '获取'),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             const Text('开发模式验证码: 1234', style: TextStyle(color: Colors.orange, fontSize: 12)),
             const SizedBox(height: 24),
             SizedBox(
