@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import '../models/field_config.dart';
 import '../services/field_config_service.dart';
+import 'card_input_field.dart';
 
-/// 配置化表单组件
+/// 配置化表单组件 - 卡片式风格
 /// 根据字段配置动态渲染表单项
 class ConfigFormView extends StatelessWidget {
   /// 模块编码
@@ -26,6 +27,9 @@ class ConfigFormView extends StatelessWidget {
   
   /// 数据变更回调
   final void Function(String fieldCode, dynamic value)? onChanged;
+  
+  /// 选择器回调（按字段编码）
+  final Map<String, VoidCallback>? onSelectTap;
 
   const ConfigFormView({
     Key? key,
@@ -36,6 +40,7 @@ class ConfigFormView extends StatelessWidget {
     this.selectOptions,
     this.formKey,
     this.onChanged,
+    this.onSelectTap,
   }) : super(key: key);
 
   @override
@@ -66,47 +71,25 @@ class ConfigFormView extends StatelessWidget {
   Widget _buildFormField(BuildContext context, FieldConfig field) {
     final value = model[field.fieldCode];
     
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: _buildInput(context, field, value),
-    );
-  }
-
-  Widget _buildInput(BuildContext context, FieldConfig field, dynamic value) {
-    final controller = TextEditingController(text: _formatValue(value, field));
-    
     switch (field.fieldType) {
       case 'select':
-        return GestureDetector(
-          onTap: () => _showSelectSheet(context, field),
-          child: AbsorbPointer(
-            child: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: field.fieldName,
-                hintText: '请选择${field.fieldName}',
-                suffixIcon: const Icon(TDIcons.chevron_right),
-                filled: true,
-                fillColor: Colors.grey[50],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-          ),
+        return CardSelectField(
+          title: field.fieldName,
+          hint: '请选择${field.fieldName}',
+          displayValue: _formatSelectValue(value),
+          required: field.required,
+          onTap: onSelectTap?[field.fieldCode] ?? () => _showSelectHint(context, field),
         );
         
       case 'number':
-        return TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            labelText: field.fieldName,
-            hintText: '请输入${field.fieldName}',
-            filled: true,
-            fillColor: Colors.grey[50],
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-          keyboardType: TextInputType.number,
-          onChanged: (val) {
-            final numValue = num.tryParse(val);
+        return CardInputField(
+          title: field.fieldName,
+          hint: '请输入${field.fieldName}',
+          value: value?.toString() ?? '',
+          required: field.required,
+          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          onChanged: (v) {
+            final numValue = num.tryParse(v);
             if (onChanged != null) {
               onChanged!(field.fieldCode, numValue);
             }
@@ -114,84 +97,74 @@ class ConfigFormView extends StatelessWidget {
         );
         
       case 'date':
-        return GestureDetector(
-          onTap: () => _showDatePicker(context, field),
-          child: AbsorbPointer(
-            child: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: field.fieldName,
-                hintText: '请选择${field.fieldName}',
-                suffixIcon: const Icon(TDIcons.calendar),
-                filled: true,
-                fillColor: Colors.grey[50],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-          ),
+        return CardDateField(
+          title: field.fieldName,
+          displayValue: _formatDateValue(value),
+          required: field.required,
+          onTap: onSelectTap?[field.fieldCode] ?? () => _showDateHint(context, field),
         );
         
       case 'textarea':
-        return TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            labelText: field.fieldName,
-            hintText: '请输入${field.fieldName}',
-            filled: true,
-            fillColor: Colors.grey[50],
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          ),
+        return CardInputField(
+          title: field.fieldName,
+          hint: '请输入${field.fieldName}',
+          value: value?.toString() ?? '',
+          required: field.required,
           maxLines: 3,
-          onChanged: (val) {
+          onChanged: (v) {
             if (onChanged != null) {
-              onChanged!(field.fieldCode, val);
+              onChanged!(field.fieldCode, v);
             }
           },
         );
         
       default:
-        return TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            labelText: field.fieldName,
-            hintText: '请输入${field.fieldName}',
-            filled: true,
-            fillColor: Colors.grey[50],
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-          onChanged: (val) {
+        return CardInputField(
+          title: field.fieldName,
+          hint: '请输入${field.fieldName}',
+          value: value?.toString() ?? '',
+          required: field.required,
+          onChanged: (v) {
             if (onChanged != null) {
-              onChanged!(field.fieldCode, val);
+              onChanged!(field.fieldCode, v);
             }
           },
         );
     }
   }
 
-  String _formatValue(dynamic value, FieldConfig field) {
-    if (value == null) return '';
-    
-    switch (field.fieldType) {
-      case 'date':
-        if (value is String) {
-          return value.split('T').first;
-        }
-        return value.toString();
-      case 'select':
-        if (value is Map) {
-          return value['name']?.toString() ?? '';
-        }
-        return value.toString();
-      default:
-        return value.toString();
+  String? _formatSelectValue(dynamic value) {
+    if (value == null) return null;
+    if (value is Map) {
+      return value['name']?.toString();
     }
+    if (value is String && value.isNotEmpty) {
+      // 尝试从selectOptions中查找显示名称
+      return value;
+    }
+    return null;
   }
 
-  void _showSelectSheet(BuildContext context, FieldConfig field) {
-    // TODO: 实现选择器底部弹窗
+  String? _formatDateValue(dynamic value) {
+    if (value == null) return null;
+    if (value is String) {
+      // 格式化日期字符串
+      if (value.contains('T')) {
+        return value.split('T').first;
+      }
+      return value;
+    }
+    if (value is DateTime) {
+      return '${value.year}-${value.month}-${value.day}';
+    }
+    return value.toString();
   }
 
-  void _showDatePicker(BuildContext context, FieldConfig field) {
-    // TODO: 实现日期选择器
+  void _showSelectHint(BuildContext context, FieldConfig field) {
+    TDToast.showText('请配置选择器回调: onSelectTap["${field.fieldCode}"]', context: context);
+  }
+
+  void _showDateHint(BuildContext context, FieldConfig field) {
+    TDToast.showText('请配置日期选择回调: onSelectTap["${field.fieldCode}"]', context: context);
   }
 }

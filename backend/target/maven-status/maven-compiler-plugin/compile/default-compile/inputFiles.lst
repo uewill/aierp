@@ -1,6 +1,7 @@
 /myclaw/aierp/backend/src/main/java/com/aierp/business/entity/Partner.java
 /myclaw/aierp/backend/src/main/java/com/aierp/auth/controller/AuthController.java
 /myclaw/aierp/backend/src/main/java/com/aierp/common/util/TenantContext.java
+/myclaw/aierp/backend/src/main/java/com/aierp/system/repository/SubscriptionRepository.java
 /myclaw/aierp/backend/src/main/java/com/aierp/business/repository/ProductRepository.java
 /myclaw/aierp/backend/src/main/java/com/aierp/auth/entity/User.java
 /myclaw/aierp/backend/src/main/java/com/aierp/common/dto/PageResponse.java
@@ -30,6 +31,8 @@
 /myclaw/aierp/backend/src/main/java/com/aierp/business/entity/SalesOrderDetail.java
 /myclaw/aierp/backend/src/main/java/com/aierp/ai/dto/AIParsedOrderDTO.java
 /myclaw/aierp/backend/src/main/java/com/aierp/ai/repository/AIOrderDraftRepository.java
+/myclaw/aierp/backend/src/main/java/com/aierp/system/entity/Tenant.java
+/myclaw/aierp/backend/src/main/java/com/aierp/system/repository/TenantRepository.java
 /myclaw/aierp/backend/src/main/java/com/aierp/business/repository/PurchaseOrderDetailRepository.java
 /myclaw/aierp/backend/src/main/java/com/aierp/business/entity/Batch.java
 /myclaw/aierp/backend/src/main/java/com/aierp/auth/dto/LoginRequest.java
@@ -38,6 +41,7 @@
 /myclaw/aierp/backend/src/main/java/com/aierp/business/controller/ProductExtendController.java
 /myclaw/aierp/backend/src/main/java/com/aierp/ai/entity/AISession.java
 /myclaw/aierp/backend/src/main/java/com/aierp/ai/service/GLMService.java
+/myclaw/aierp/backend/src/main/java/com/aierp/system/entity/Subscription.java
 /myclaw/aierp/backend/src/main/java/com/aierp/business/service/PurchaseOrderService.java
 /myclaw/aierp/backend/src/main/java/com/aierp/ai/repository/AIMessageRepository.java
 /myclaw/aierp/backend/src/main/java/com/aierp/ai/service/AIService.java
@@ -50,6 +54,7 @@
 /myclaw/aierp/backend/src/main/java/com/aierp/business/entity/PurchaseOrderDetail.java
 /myclaw/aierp/backend/src/main/java/com/aierp/business/entity/Warehouse.java
 /myclaw/aierp/backend/src/main/java/com/aierp/ai/service/VoiceService.java
+/myclaw/aierp/backend/src/main/java/com/aierp/system/controller/TenantController.java
 /myclaw/aierp/backend/src/main/java/com/aierp/business/repository/SalesOrderDetailRepository.java
 /myclaw/aierp/backend/src/main/java/com/aierp/business/repository/UnitConversionRepository.java
 /myclaw/aierp/backend/src/main/java/com/aierp/common/config/WebMvcConfig.java

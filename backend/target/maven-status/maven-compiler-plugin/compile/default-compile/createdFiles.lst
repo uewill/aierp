@@ -8,10 +8,12 @@ com/aierp/business/repository/PurchaseOrderRepository.class
 com/aierp/business/repository/BatchRepository.class
 com/aierp/ai/controller/AIController.class
 com/aierp/AierpApplication.class
+com/aierp/system/repository/SubscriptionRepository.class
 com/aierp/business/entity/ProductBarcode.class
 com/aierp/business/service/PurchaseOrderService.class
 com/aierp/ai/repository/AIMessageRepository.class
 com/aierp/business/entity/PurchaseOrderDetail.class
+com/aierp/system/entity/Tenant.class
 com/aierp/ai/dto/AITextInputRequest.class
 com/aierp/business/entity/PurchaseOrder.class
 com/aierp/ai/config/AIConfig.class
@@ -26,6 +28,7 @@ com/aierp/ai/dto/AIResponse.class
 com/aierp/auth/controller/AuthController.class
 com/aierp/ai/entity/AISession.class
 com/aierp/business/entity/Inventory.class
+com/aierp/system/controller/TenantController.class
 com/aierp/common/util/UserContext.class
 com/aierp/business/entity/Warehouse.class
 com/aierp/auth/repository/VerifyCodeRepository.class
@@ -58,6 +61,8 @@ com/aierp/business/repository/UnitGroupRepository.class
 com/aierp/business/service/SalesOrderService.class
 com/aierp/business/repository/WarehouseRepository.class
 com/aierp/business/entity/Batch.class
+com/aierp/system/entity/Subscription.class
+com/aierp/system/repository/TenantRepository.class
 com/aierp/business/repository/SalesOrderDetailRepository.class
 com/aierp/common/entity/BaseEntity.class
 com/aierp/auth/dto/LoginResponse$CompanyInfo.class
